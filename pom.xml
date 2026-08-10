@@ -1,0 +1,130 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>pom</groupId>
+	<artifactId>Rest_Assured_POM_Framework</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+
+	<dependencies>
+
+
+		<!-- Source:
+		https://mvnrepository.com/artifact/io.rest-assured/rest-assured -->
+		<dependency>
+			<groupId>io.rest-assured</groupId>
+			<artifactId>rest-assured</artifactId>
+			<version>6.0.1</version>
+
+		</dependency>
+
+		<!-- Source:
+		https://mvnrepository.com/artifact/io.rest-assured/json-path -->
+		<dependency>
+			<groupId>io.rest-assured</groupId>
+			<artifactId>json-path</artifactId>
+			<version>6.0.1</version>
+			<scope>compile</scope>
+		</dependency>
+
+		<!-- Source:
+		https://mvnrepository.com/artifact/io.rest-assured/json-schema-validator -->
+		<dependency>
+			<groupId>io.rest-assured</groupId>
+			<artifactId>json-schema-validator</artifactId>
+			<version>6.0.1</version>
+			<scope>compile</scope>
+		</dependency>
+
+		<!-- Source: https://mvnrepository.com/artifact/org.json/json -->
+		<dependency>
+			<groupId>org.json</groupId>
+			<artifactId>json</artifactId>
+			<version>20260719</version>
+			<scope>compile</scope>
+		</dependency>
+
+		<!-- Source:
+		https://mvnrepository.com/artifact/com.google.code.gson/gson -->
+		<dependency>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
+			<version>2.14.0</version>
+			<scope>compile</scope>
+		</dependency>
+
+
+		<!-- Source:
+		https://mvnrepository.com/artifact/tools.jackson.core/jackson-databind -->
+		<dependency>
+			<groupId>tools.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+			<version>3.2.1</version>
+			<scope>compile</scope>
+		</dependency>
+
+		<!-- Source: https://mvnrepository.com/artifact/org.testng/testng -->
+		<dependency>
+			<groupId>org.testng</groupId>
+			<artifactId>testng</artifactId>
+			<version>7.12.0</version>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- Source:
+		https://mvnrepository.com/artifact/io.cucumber/cucumber-testng -->
+		<dependency>
+			<groupId>io.cucumber</groupId>
+			<artifactId>cucumber-testng</artifactId>
+			<version>7.34.6</version>
+			<scope>compile</scope>
+		</dependency>
+
+		<!-- Source:
+		https://mvnrepository.com/artifact/io.cucumber/cucumber-java -->
+		<dependency>
+			<groupId>io.cucumber</groupId>
+			<artifactId>cucumber-java</artifactId>
+			<version>7.34.6</version>
+			<scope>compile</scope>
+		</dependency>
+
+		<!-- Source:
+		https://mvnrepository.com/artifact/io.cucumber/cucumber-core -->
+		<dependency>
+			<groupId>io.cucumber</groupId>
+			<artifactId>cucumber-core</artifactId>
+			<version>7.34.6</version>
+			<scope>compile</scope>
+		</dependency>
+
+		<!-- Source:
+		https://mvnrepository.com/artifact/net.masterthought/cucumber-reporting -->
+		<dependency>
+			<groupId>net.masterthought</groupId>
+			<artifactId>cucumber-reporting</artifactId>
+			<version>5.11.0</version>
+			<scope>compile</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>rest.assured</groupId>
+			<artifactId>Rest_Assured_Framework_SDET</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+
+		<!-- Source:
+		https://mvnrepository.com/artifact/com.aventstack/extentreports -->
+		<dependency>
+			<groupId>com.aventstack</groupId>
+			<artifactId>extentreports</artifactId>
+			<version>5.1.2</version>
+			<scope>compile</scope>
+		</dependency>
+
+
+	</dependencies>
+
+
+</project>

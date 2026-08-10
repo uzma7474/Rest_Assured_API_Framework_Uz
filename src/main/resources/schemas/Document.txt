@@ -1,0 +1,8 @@
+curl -X 'POST' \
+  'https://api.eventhub.rahulshettyacademy.com/api/auth/register' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "email": "student@example.com",
+  "password": "secret123"
+}'
