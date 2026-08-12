@@ -1,12 +1,8 @@
 package services;
 
-import base.BaseApi;
-import config.ConfigManager;
-import endpoints.RegisterEndpoints;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import models.requests.RegisterRequest;
-import models.response.RegisterErrorResponse;
 import models.response.RegisterResponse;
 
 //Core REST Assured methods (given(), when(), get(), post(), etc.)
@@ -15,49 +11,44 @@ import static io.restassured.RestAssured.*;
 //Matchers for validating responses (equalTo(), hasItem(), containsString(), etc.)
 import static org.hamcrest.Matchers.*;
 
+import base.BaseApi;
+import endpoints.AuthEndpoints;
+import endpoints.RegisterEndpoints;
+
 //REST Assured specific matchers (e.g., matchesXsd() for XML validation)
 import static io.restassured.matcher.RestAssuredMatchers.*;
 
-
-public class RegisterService extends BaseApi {
-
+public class LoginService extends BaseApi{
+	
 	private RequestSpecification requestSpecification;
 	public RegisterRequest registerRequest;
 	public RequestSpecification requestSpecTextContent;
-	 
 	
 	
-	public RegisterService() {
+	public LoginService() {
 		this.requestSpecification = getRequestSpec();
 		
 		//this.registerRequest = new RegisterRequest(ConfigManager.getProperty("email"), ConfigManager.getProperty("password"));
 		this.registerRequest = new RegisterRequest();
 	}
-
+	
 	/**
-	 * Register a new user.
+	 * Login a new user.
 	 *
-	 * @param registerRequest registration request payload
+	 * @param registerRequest Login request payload
 	 * @return API response
 	 */
-	public Response registerUser(RegisterRequest registerRequest) {
+	public Response loginUser(RegisterRequest loginRequest) {
 
 		return given()
 					.spec(requestSpecification)
-					.body(registerRequest)
+					.body(loginRequest)
 			  .when()
-			     	.post(RegisterEndpoints.REGISTER);
+			     	.post(AuthEndpoints.LOGIN);
 	}
 	
-	public Response registerUserTextContentType() {
-		return given()
-				.spec(requestSpecTextContent)
-				.body(registerRequest)
-		  .when()
-		     	.post(RegisterEndpoints.REGISTER);
-	}
 	
-	public RegisterResponse registerUserUsingPojo(Response res) {
+	public RegisterResponse loginUserUsingPojo(Response res) {
 		Response response = res.then()
 								.extract()
 								.response();
@@ -71,17 +62,5 @@ public class RegisterService extends BaseApi {
 	}
 	
 	
-	public RegisterErrorResponse registerUserUsingPojo_failure(Response res) {
-		Response response = res.then()
-								.extract()
-								.response();
-		
-		if (response.statusCode() != 201) {
-	        return response.as(RegisterErrorResponse.class);
-	    }
 
-	    return null;
-						
-	}
-	
 }

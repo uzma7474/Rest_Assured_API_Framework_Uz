@@ -72,6 +72,43 @@ public final class RequestSpecificationFactory {
 
 		return builder.build();
 	}
+	
+	public static  RequestSpecification createRequestSpecificationOfTextContent() {
+		String baseUrl = ConfigManager.getProperty("base.url");
+
+		int requestTimeout = ConfigManager.getIntProperty("request.timeout", 30000);
+
+		int connectionTimeout = ConfigManager.getIntProperty("connection.timeout", 30000);
+
+		int socketTimeout = ConfigManager.getIntProperty("socket.timeout", 30000);
+		
+		// 1. Instantiate the authentication scheme
+		PreemptiveBasicAuthScheme authScheme = new PreemptiveBasicAuthScheme();
+		authScheme.setUserName(ConfigManager.getProperty("email"));
+		authScheme.setPassword(ConfigManager.getProperty("password"));
+		
+		
+
+		RequestSpecBuilder builder = new RequestSpecBuilder()
+			
+				.setBaseUri(baseUrl)
+				
+				//.setAuth(authScheme)
+
+				.setContentType(ContentType.TEXT)
+
+				.setAccept(ContentType.JSON)
+
+				.setConfig(RestAssuredConfig.config()
+						.httpClient(HttpClientConfig.httpClientConfig()
+								.setParam("http.connection.timeout", connectionTimeout)
+								.setParam("http.socket.timeout", socketTimeout)
+								.setParam("http.connection-manager.timeout", requestTimeout)));
+
+		return builder.build();
+		
+		
+	}
 
 	/**
 	 * Creates a request specification with logging.

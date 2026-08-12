@@ -25,6 +25,8 @@ public class BaseApi {
 
 	protected ResponseSpecification responseSpec;
 	
+	protected RequestSpecification requestSpecTextContent;
+	
 
 
 	/**
@@ -37,6 +39,9 @@ public class BaseApi {
 		this.requestSpec = RequestSpecificationFactory.createDefaultRequestSpecification();
 
 		this.responseSpec = ResponseSpecificationFactory.createDefaultResponseSpecification();
+		
+		this.requestSpecTextContent = RequestSpecificationFactory.createRequestSpecificationOfTextContent();
+		
 	}
 
 	/**

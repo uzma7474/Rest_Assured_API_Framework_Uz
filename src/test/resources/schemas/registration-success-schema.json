@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org",
+  "type": "object",
+  "properties": {
+    "success": { "type": "boolean" },
+    "token": { "type": "string" },
+    "user": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer" },
+        "email": { "type": "string" }
+      },
+      "required": ["id", "email"]
+    }
+  },
+  "required": ["success", "token", "user"]
+}
