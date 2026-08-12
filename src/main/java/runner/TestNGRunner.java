@@ -13,7 +13,7 @@ import org.testng.annotations.Listeners;
 				"json:target/cucumber-reports/cucumber.json",
 				"junit:target/cucumber-reports/cucumber.xml" 
 	}, 
-	//tags = , 
+	tags = "@TC002", 
 	publish = false, 
 	dryRun = false, 
 	monochrome = true)

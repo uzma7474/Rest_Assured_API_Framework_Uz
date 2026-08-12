@@ -6,6 +6,7 @@ import endpoints.RegisterEndpoints;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import models.requests.RegisterRequest;
+import models.response.RegisterErrorResponse;
 import models.response.RegisterResponse;
 
 //Core REST Assured methods (given(), when(), get(), post(), etc.)
@@ -20,8 +21,9 @@ import static io.restassured.matcher.RestAssuredMatchers.*;
 
 public class RegisterService extends BaseApi {
 
-	private final RequestSpecification requestSpecification;
+	private RequestSpecification requestSpecification;
 	public RegisterRequest registerRequest;
+	 
 	
 	
 	public RegisterService() {
@@ -46,13 +48,30 @@ public class RegisterService extends BaseApi {
 			     	.post(RegisterEndpoints.REGISTER);
 	}
 	
-	public RegisterResponse registerUserIn(Response res) {
+	public RegisterResponse registerUserUsingPojo(Response res) {
 		Response response = res.then()
 								.extract()
 								.response();
-		return response.as(RegisterResponse.class);
+		
+		if (response.statusCode() == 201) {
+	        return response.as(RegisterResponse.class);
+	    }
+
+	    return null;
 						
 	}
 	
+	public RegisterErrorResponse registerUserUsingPojo_failure(Response res) {
+		Response response = res.then()
+								.extract()
+								.response();
+		
+		if (response.statusCode() != 201) {
+	        return response.as(RegisterErrorResponse.class);
+	    }
+
+	    return null;
+						
+	}
 	
 }
