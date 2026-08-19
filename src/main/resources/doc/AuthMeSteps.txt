@@ -1,0 +1,482 @@
+package stepdefinitions;
+
+import io.restassured.response.Response;
+import io.restassured.specification.RequestSpecification;
+import models.requests.RegisterRequest;
+import models.response.AuthMeResponse;
+import models.response.AuthResponse;
+import models.response.BaseErrorResponse;
+import models.response.UserAuthResponse;
+import services.AuthMeService;
+import services.LoginService;
+import utils.TokenManager;
+
+import org.testng.Assert;
+
+import constants.HttpConstants;
+import context.ScenarioContext;
+import endpoints.AuthEndpoints;
+import io.cucumber.datatable.DataTable;
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.When;
+import io.cucumber.java.en.Then;
+
+public class AuthMeSteps {
+
+	// private TestContext context;
+	public BaseErrorResponse baseErrorResponse;
+
+	public AuthMeResponse authResponse;
+
+	public AuthMeService authMeService ;
+
+	private String authorizationValue;
+	
+
+	private final ScenarioContext context;
+	// PicoContainer injects the exact same context instance here
+
+	public AuthMeSteps(ScenarioContext context) {
+		this.context = context;
+		 this.authMeService = new AuthMeService();
+	}
+
+	// ============================================================
+	// PRINT RESPONSE
+	// ============================================================
+
+	private void printResponse() {
+
+		System.out.println();
+		System.out.println("========================================");
+		System.out.println("Auth Me API RESPONSE");
+		System.out.println("========================================");
+
+		// --------------------------------------------------------
+		// Common Response Information
+		// --------------------------------------------------------
+		if (context.getResponse() != null) {
+
+			System.out.println("Status Code : " + context.getResponse().statusCode());
+			System.out.println("Response Body:");
+			System.out.println(context.getResponse().asPrettyString());
+		}
+		// --------------------------------------------------------
+		// SUCCESS RESPONSE
+		// --------------------------------------------------------
+
+		if (authResponse != null) {
+			System.out.println("Success : " + authResponse.isSuccess());
+
+			if (authResponse != null) {
+				System.out.println("User ID : " + authResponse.getUser().getUserId());
+				System.out.println("User Email : " + authResponse.getUser().getEmail());
+				System.out.println("User iat : " + authResponse.getUser().getIat());
+				System.out.println("User exp : " + authResponse.getUser().getExp());
+			}
+		}
+
+		// --------------------------------------------------------
+		// ERROR RESPONSE
+		// --------------------------------------------------------
+
+		if (baseErrorResponse != null) {
+
+			System.out.println("Success : " + baseErrorResponse.isSuccess());
+			System.out.println("Error : " + baseErrorResponse.getError());
+
+		}
+
+		System.out.println("========================================");
+		System.out.println();
+
+		// Extracting a top-level boolean
+		boolean isSuccess = context.getResponse().jsonPath().getBoolean("success");
+
+		// Extracting nested values
+		int userId = context.getResponse().jsonPath().getInt("user.userId");
+		String email = context.getResponse().jsonPath().getString("user.email");
+		long issuedAt = context.getResponse().jsonPath().getLong("user.iat");
+	}
+
+//======================================  GIVEN  ==========================================================
+
+	@Given("the request contains the header {string} with value {string}")
+	public void request_contains_accept_with_contenttype(String headerValue, String contentTypeValue) {
+		String contentType = context.getResponse().contentType().split(";")[0].trim();
+		System.out.println("Content Type : " + contentType);
+		Assert.assertEquals(contentType, contentTypeValue);
+	}
+
+	@Given("the request does not contain an Authorization header")
+	public void request_without_authorization_header() {
+
+	}
+
+	@Given("the request contains the header {string} with an empty value")
+	public void request_contains_header_authorization_with_empty_value(String auth) {
+		BaseErrorResponse response = authMeService.userAuthMeEmptyAuthorization();
+		context.setBaseErrorResponse(response);
+
+	}
+
+	@Given("the request contains the Authorization header {string}")
+	public void request_contains_authorization_header_invalid_bearer(String authorizationValue) {
+		BaseErrorResponse response = authMeService.userAuthMeWithAuthorization(authorizationValue);
+		context.setBaseErrorResponse(response);
+	}
+
+	@Given("the request contains a syntactically invalid JWT")
+	public void request_contains_invalid_JWT() {
+		BaseErrorResponse response = authMeService.userAuthMeWithAuthorization("invalid JWT");
+		context.setBaseErrorResponse(response);
+		System.out.println("Given Error " + context.getBaseErrorResponse().getError());
+	}
+
+	@Given("the request contains Basic authentication instead of Bearer authentication")
+	public void basic_authentication_instead_bearer_authentication() {
+		BaseErrorResponse response = authMeService.basicAuthInsteadBearerAuth();
+		Assert.assertNotNull(response, "BaseErrorResponse is null");
+		context.setBaseErrorResponse(response);
+
+	}
+
+	@Given("the Authorization header contains extra {string}")
+	public void authorization_header_contains_extra(String authorizationHeader) {
+
+		// Replace <token> with the token stored from the login response
+		authorizationHeader = authorizationHeader.replace("<token>", TokenManager.getToken());
+
+		BaseErrorResponse response = authMeService.bearerTokenWithExtraData(authorizationHeader);
+		Assert.assertNotNull(response, "BaseErrorResponse is null");
+		context.setBaseErrorResponse(response);
+	}
+
+	@Given("the Authorization header contains {string}")
+	public void authorization_header_contains(String authorizationHeader) {
+	    this.authorizationValue = authorizationHeader;
+
+	    System.out.println("Authorization Header Set : " + this.authorizationValue);
+		BaseErrorResponse response = authMeService.userAuthMeWithAuthorization(authorizationValue);
+		Assert.assertNotNull(response, "BaseErrorResponse is null");
+		context.setBaseErrorResponse(response);
+	}
+
+//======================================  WHEN  ==========================================================	
+	@When("I send a {string} request to {string}")
+	public void the_user_sends_a_httpMethod_request(String httpMethod, String authEndpoint) {
+		switch (httpMethod.toUpperCase()) {
+
+		case "GET":
+
+			// ---------------------------------------------
+			// FIRST SEND THE REQUEST
+			// ---------------------------------------------
+
+			String token = context.getToken();
+
+			Response response = authMeService.getCurrentUserAuthMe(AuthEndpoints.AuthMe);
+
+			context.setResponse(response);
+
+			System.out.println("HTTP Method : " + httpMethod);
+			System.out.println("Status Code : " + response.statusCode());
+			System.out.println("Response Body : ");
+			System.out.println(response.asPrettyString());
+
+			// ---------------------------------------------
+			// THEN CHECK THE RESPONSE STATUS
+			// ---------------------------------------------
+
+			if (context.getResponse().getStatusCode() == HttpConstants.OK) {
+
+				authResponse = authMeService.authMeUser(response);
+				System.out.println("User success : " + authResponse.isSuccess());
+				System.out.println("User ID : " + authResponse.getUser().getUserId());
+				System.out.println("User Email : " + authResponse.getUser().getEmail());
+				System.out.println("User iat : " + authResponse.getUser().getIat());
+				System.out.println("User exp : " + authResponse.getUser().getExp());
+
+				// Store Auth Me User ID
+				Integer authMeUserId = authResponse.getUser().getUserId();
+				context.setAuthMeUserId(authMeUserId);
+
+				// Store Auth Me Email
+				String authMeEmail = authResponse.getUser().getEmail();
+				context.setAuthMeEmail(authMeEmail);
+				// Store response and token in the shared context
+				// context.setResponse(response);
+
+				// -----------------------------------------
+				// SAVE TOKEN ONLY AFTER SUCCESSFUL RESPONSE
+				// -----------------------------------------
+				// Store it securely in your ThreadLocal TokenManager
+
+				if (token != null && !token.isBlank()) {
+
+					TokenManager.setToken(token);
+					System.out.println("Token saved in TokenManager");
+				}
+
+				System.out.println("========================================");
+				System.out.println();
+
+			} else {
+
+				baseErrorResponse = authMeService.authMeUserUsingPojoFailure(response);
+				System.out.println("Error : " + baseErrorResponse.getError());
+			}
+
+			System.out.println("========================================");
+			System.out.println();
+
+			break;
+
+		default:
+
+			throw new IllegalArgumentException("Unsupported HTTP method: " + httpMethod);
+		}
+
+	}
+
+	@When("I send a GET request to {string}")
+	public void send_get_request_without_authorization(String authEndpoint) {
+		Assert.assertEquals(AuthEndpoints.AuthMe, authEndpoint);
+		System.out.println("==========================================");
+	    System.out.println("Sending GET Request");
+	    System.out.println("Endpoint              : " + authEndpoint);
+	    System.out.println("Authorization Header  : " + authorizationValue);
+	    System.out.println("==========================================");
+		// Assert.assertEquals(context.getBaseErrorResponse().getError(),
+		// "Unauthorized");
+
+	}
+
+//======================================  THEN  ==========================================================	
+
+	@Then("store the token")
+	public void save_token() {
+		// Retrieve the token stored by LoginSteps
+		// Automatically fetches the token for the current thread with 'Bearer ' prefix
+		// String bearerHeader = TokenManager.getBearerToken();;
+
+		String token = context.getResponse().jsonPath().getString("token");
+		// context.setToken(token);
+
+		// Store it securely in your ThreadLocal TokenManager
+
+		if (token != null && !token.isBlank()) {
+
+			TokenManager.setToken(token);
+
+			System.out.println("Token saved in TokenManager : " + token);
+		}
+		token = TokenManager.getToken();
+		Assert.assertNotNull(token, "Token is null in TokenManager");
+		Assert.assertFalse(token.isBlank(), "Token is empty in TokenManager");
+
+		System.out.println("Token retrieved from TokenManager");
+
+		System.out.println("========================================");
+		System.out.println();
+
+	}
+
+	// @Then("the response content type should be {string}")
+	public void response_content_type_should_be(String expectedContentType) {
+		String actualContentType = context.getResponse().contentType();
+		Assert.assertEquals(actualContentType, expectedContentType);
+
+	}
+
+	// @Then("the response field success should be {string}")
+	public void response_success_should_be(String expectedSuccess) {
+		boolean actualSuccess = authResponse.isSuccess();
+		boolean expected = Boolean.parseBoolean(expectedSuccess);
+
+		Assert.assertTrue(expected, "Expected success to be true");
+	}
+
+	@Then("the response should contain user")
+	public void response_should_contain_user() {
+		// userAuthResponse.getUserId()
+		Assert.assertNotNull(authResponse, "user object is null");
+
+	}
+
+	@Then("the login user id should be same as auth me user id")
+	public void login_user_id_should_be_same_as_auth_me_user_id() {
+
+		Integer loginUserId = context.getLoginUserId();
+		Integer authMeUserId = context.getAuthMeUserId();
+
+		System.out.println();
+		System.out.println("========================================");
+		System.out.println("USER ID COMPARISON");
+		System.out.println("========================================");
+		System.out.println("Login User ID   : " + loginUserId);
+		System.out.println("Auth Me User ID : " + authMeUserId);
+		System.out.println("========================================");
+
+		Assert.assertNotNull(loginUserId, "User ID from login response is null");
+
+		Assert.assertNotNull(authMeUserId, "User ID from auth/me response is null");
+
+		Assert.assertEquals(authMeUserId, loginUserId, "User ID from login and auth/me responses do not match");
+	}
+
+	@Then("the login user email should be same as auth me user email")
+	public void login_user_email_should_be_same_as_auth_me_user_email() {
+
+		String loginEmail = context.getLoginEmail();
+		String authMeEmail = context.getAuthMeEmail();
+
+		System.out.println();
+		System.out.println("========================================");
+		System.out.println("USER Email COMPARISON");
+		System.out.println("========================================");
+		System.out.println("Login User Email   : " + loginEmail);
+		System.out.println("Auth Me User Email : " + authMeEmail);
+		System.out.println("========================================");
+
+		Assert.assertNotNull(loginEmail, "User Email from login response is null");
+
+		Assert.assertNotNull(authMeEmail, "User Email from auth/me response is null");
+
+		Assert.assertEquals(loginEmail, authMeEmail, "User Email from login and auth/me responses do not match");
+		System.out.println("========================================");
+		System.out.println();
+	}
+
+	@Then("the response field user.iat should be present")
+	public void response_field_iat_should_be_present() {
+		Object value = authResponse.getUser().getIat();
+		Assert.assertNotNull(value, "User iat from auth/me response is null");
+		System.out.println("========================================");
+		System.out.println();
+	}
+
+	@Then("the response field user.iat should be a number")
+	public void response_field_iat_should_be_a_number() {
+		Object value = authResponse.getUser().getIat();
+		// Check if it inherits from java.lang.Number
+		Assert.assertTrue(value instanceof Number, "user.iat is not a valid numeric type");
+
+		boolean isNumeric = (value instanceof Integer) || (value instanceof Long);
+		Assert.assertTrue(isNumeric, "user.iat is neither an Integer nor a Long");
+		System.out.println();
+		System.out.println("========================================");
+		System.out.println("USER iat type");
+		System.out.println("========================================");
+		System.out.println("Actual class type is: " + value.getClass().getName());
+
+		System.out.println("========================================");
+		System.out.println();
+
+	}
+
+	@Then("the response field {string} should be present")
+	public void response_field_should_be_present(String jsonPath) {
+		Object value = context.getResponse().jsonPath().get(jsonPath);
+		Assert.assertNotNull(value, "The field '" + jsonPath + "' is missing or null in the response");
+	}
+
+	@Then("the response field {string} should be a number")
+	public void response_field_should_be_a_number(String jsonPath) {
+		Object value = context.getResponse().jsonPath().get(jsonPath);
+
+		// Ensure field exists before checking type
+		Assert.assertNotNull(value, "Cannot check type; field '" + jsonPath + "' is null");
+
+		// Checking against Number class safely covers Integer, Long, and Float
+		Assert.assertTrue(value instanceof Number,
+				"Expected '" + jsonPath + "' to be a numeric type, but found: " + value.getClass().getSimpleName());
+	}
+
+	@Then("the {string} value should be less than the {string} value")
+	public void value_should_be_less_than_another_value(String firstFieldPath, String secondFieldPath) {
+		// Extract the values from the response body using JSON path
+		Object firstValue = context.getResponse().jsonPath().get(firstFieldPath);
+		Object secondValue = context.getResponse().jsonPath().get(secondFieldPath);
+
+		// 1. Verify both fields actually exist in the response
+		Assert.assertNotNull(firstValue, "Field '" + firstFieldPath + "' is missing or null");
+		Assert.assertNotNull(secondValue, "Field '" + secondFieldPath + "' is missing or null");
+
+		// 2. Verify both fields contain numeric values
+		Assert.assertTrue(firstValue instanceof Number, "Field '" + firstFieldPath + "' is not a number");
+		Assert.assertTrue(secondValue instanceof Number, "Field '" + secondFieldPath + "' is not a number");
+
+		// 3. Cast to Number and compare as long values to prevent any Integer/Long
+		// mismatch errors
+		long firstNum = ((Number) firstValue).longValue();
+		long secondNum = ((Number) secondValue).longValue();
+
+		// 4. Perform the assertion check
+		Assert.assertTrue(firstNum < secondNum, "Assertion Failed: '" + firstFieldPath + "' (" + firstNum
+				+ ") is NOT less than '" + secondFieldPath + "' (" + secondNum + ")");
+	}
+
+	@Then("the response content type should contain {string}")
+	public void response_content_type_should_contain(String expectedContentType) {
+		String contentType = context.getResponse().contentType().split(";")[0].trim();
+		System.out.println("Content Type : " + contentType);
+		Assert.assertEquals(contentType, expectedContentType);
+	}
+
+	@Then("the request contains an Authorization header containing only a valid token")
+	public void request_contains_authorization_header_containing_only_a_valid_token() {
+//		Response respone = authMeService.userAuthMeWithoutBearerAuthorization();
+//		context.setResponse(respone);
+		authorizationValue = TokenManager.getToken();
+	}
+
+	@Then("the request contains the header authorization {string} with value {string}")
+	public void the_request_contains_the_header_authorization_with_value(String authHeader, String bearerValue) {
+		BaseErrorResponse response = authMeService.userAuthMeWithAuthorization(bearerValue + " ");
+
+		context.setBaseErrorResponse(response);
+	}
+
+	@Then("the request contains the header Authorization with value {string}")
+	public void request_contain_header_authorization_with_value_bearer(String bearerValue) {
+		BaseErrorResponse response = authMeService.userAuthMeWithAuthorization(bearerValue + " ");
+
+		context.setBaseErrorResponse(response);
+	}
+
+	// @Then("the response error should be {string}")
+	public void response_error_shoould_be(String expectedError) {
+		Assert.assertEquals(baseErrorResponse.getError(), expectedError);
+	}
+
+	@Then("the auth response error message should be {string}")
+	public void response_error_message_should_be(String expectedError) {
+
+		if (context.getResponse().statusCode() == 200 && context.getBaseErrorResponse() == null) {
+			Assert.assertEquals(context.getResponse().statusCode(), 200, "Unexpected response status code");
+		} else if (context.getBaseErrorResponse().isSuccess() == false && context.getResponse().statusCode() == 401) {
+			System.out.println("Error Msg : " + context.getBaseErrorResponse().getError());
+			Assert.assertEquals(context.getBaseErrorResponse().getError(), "Unauthorized");
+
+		} else if (context.getBaseErrorResponse().isSuccess() == false && context.getResponse().statusCode() == 200) {
+			System.out.println("Error Msg : " + context.getBaseErrorResponse().getError());
+			Assert.assertEquals(context.getBaseErrorResponse().getError(), "Invalid or expired token");
+
+		}
+	}
+
+	@Then("the auth response errors {string}")
+	public void auth_authentication_error(String expectedError) {
+
+		Assert.assertNotNull(context.getBaseErrorResponse(), "Error response is null.");
+
+		String actualError = context.getBaseErrorResponse().getError();
+
+		System.out.println("Expected Error : " + expectedError);
+		System.out.println("Actual Error   : " + actualError);
+
+		Assert.assertEquals(actualError, expectedError, "Unexpected authentication error");
+	}
+
+}

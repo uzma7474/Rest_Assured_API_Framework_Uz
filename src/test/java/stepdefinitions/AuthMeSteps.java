@@ -1,0 +1,809 @@
+package stepdefinitions;
+
+import context.ScenarioContext;
+import endpoints.AuthEndpoints;
+import io.cucumber.datatable.DataTable;
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
+import io.restassured.response.Response;
+import models.response.AuthMeResponse;
+import models.response.BaseErrorResponse;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import org.testng.Assert;
+import services.AuthMeService;
+import utils.TokenManager;
+
+public class AuthMeSteps {
+
+	private final ScenarioContext context;
+
+	private final AuthMeService authMeService;
+
+	private final Map<String, String> requestHeaders = new HashMap<>();
+
+	/*
+	 * Authorization value prepared by Given steps.
+	 *
+	 * null = no custom Authorization specified "" = empty Authorization header
+	 * value = exact Authorization header
+	 */
+	private String authorizationValue;
+
+	private AuthMeResponse authResponse;
+
+	private BaseErrorResponse baseErrorResponse;
+
+	private boolean authorizationHeaderRequired = true;
+
+	public AuthMeSteps(ScenarioContext context) {
+
+		this.context = context;
+		this.authMeService = new AuthMeService();
+	}
+
+	// ============================================================
+	// GIVEN
+	// ============================================================
+
+	/**
+	 * No Authorization header.
+	 *
+	 * Important: This step DOES NOT call the API.
+	 */
+	@Given("the request does not contain an Authorization header")
+	public void request_without_authorization_header() {
+
+		authorizationHeaderRequired = false;
+
+		authorizationValue = null;
+
+		System.out.println("Authorization Header : NOT PROVIDED");
+	}
+
+	/**
+	 * Empty Authorization header.
+	 */
+	@Given("the request contains the header {string} with an empty value")
+	public void request_contains_header_with_empty_value(String headerName) {
+
+		if (!"Authorization".equalsIgnoreCase(headerName)) {
+			throw new IllegalArgumentException("This step is only supported for Authorization header.");
+		}
+
+		authorizationValue = "";
+
+		System.out.println("Authorization Header : EMPTY");
+	}
+
+	/**
+	 * Generic Authorization header.
+	 *
+	 * Example:
+	 *
+	 * Given the request contains the Authorization header "Bearer invalid-token"
+	 */
+	@Given("the request contains the Authorization header {string}")
+	public void request_contains_authorization_header(String authorizationHeader) {
+
+		authorizationValue = authorizationHeader;
+
+		System.out.println("Authorization Header : " + authorizationValue);
+	}
+
+	/**
+	 * Syntactically invalid JWT.
+	 */
+	@Given("the request contains a syntactically invalid JWT")
+	public void request_contains_invalid_jwt() {
+
+		authorizationValue = "Bearer invalid.JWT.token";
+
+		System.out.println("Authorization Header : " + authorizationValue);
+	}
+
+	/**
+	 * Basic authentication instead of Bearer.
+	 */
+	@Given("the request contains Basic authentication instead of Bearer authentication")
+	public void basic_authentication_instead_bearer_authentication() {
+
+		authorizationValue = "Basic " + TokenManager.getToken();
+
+		System.out.println("Authorization Header : " + authorizationValue);
+	}
+
+	/**
+	 * Authorization header with extra data.
+	 *
+	 * Example:
+	 *
+	 * Bearer <token> extra-data
+	 */
+	@Given("the Authorization header contains extra {string}")
+	public void authorization_header_contains_extra(String authorizationHeader) {
+
+		String token = TokenManager.getToken();
+
+		Assert.assertNotNull(token, "Token is null. Login must be performed first.");
+
+		Assert.assertFalse(token.isBlank(), "Token is empty.");
+
+		authorizationValue = authorizationHeader.replace("<token>", token);
+
+		System.out.println("Authorization Header : " + authorizationValue);
+	}
+
+	/**
+	 * Scenario Outline authorization value.
+	 *
+	 * Example:
+	 *
+	 * Given the Authorization header contains "invalid-token"
+	 */
+	@Given("the Authorization header contains {string}")
+	public void authorization_header_contains(String authorizationHeader) {
+
+		authorizationValue = authorizationHeader;
+
+		System.out.println("Authorization Header : " + authorizationValue);
+	}
+
+	/**
+	 * Valid token WITHOUT Bearer keyword.
+	 *
+	 * Used by AuthMe11.
+	 *
+	 * Example:
+	 *
+	 * Authorization: eyJhbGci...
+	 */
+	@Given("the request contains an Authorization header containing only a valid token")
+	public void request_contains_authorization_header_containing_only_a_valid_token() {
+
+		String token = TokenManager.getToken();
+
+		Assert.assertNotNull(token, "Token is null.");
+
+		Assert.assertFalse(token.isBlank(), "Token is empty.");
+
+		authorizationValue = token;
+
+		System.out.println("Authorization Header : " + authorizationValue);
+	}
+
+	/**
+	 * Authorization header with a specific value.
+	 *
+	 * Used by AuthMe12.
+	 *
+	 * Example:
+	 *
+	 * Given the request contains the header authorization "Authorization" with
+	 * value "Bearer"
+	 */
+	@Given("the request contains the header authorization {string} with value {string}")
+	public void request_contains_authorization_header_with_value(String headerName, String value) {
+
+		if (!"Authorization".equalsIgnoreCase(headerName)) {
+			throw new IllegalArgumentException("Expected Authorization header but received: " + headerName);
+		}
+
+		authorizationValue = value;
+
+		System.out.println("Authorization Header : " + authorizationValue);
+	}
+
+	@Given("the request contains the header {string} with value {string}")
+	public void the_request_contains_the_header_with_value(String headerName, String headerValue) {
+		Assert.assertNotNull(headerName, "Header name must not be null");
+
+		Assert.assertNotNull(headerValue, "Header value must not be null");
+
+		Assert.assertFalse(headerName.isBlank(), "Header name must not be empty");
+
+		Assert.assertFalse(headerValue.isBlank(), "Header value must not be empty");
+
+		/*
+		 * Store header for the upcoming HTTP request.
+		 */
+		requestHeaders.put(headerName, headerValue);
+
+		System.out.println();
+		System.out.println("==========================================");
+		System.out.println("REQUEST HEADER");
+		System.out.println("Header Name  : " + headerName);
+		System.out.println("Header Value : " + headerValue);
+		System.out.println("==========================================");
+
+	}
+
+	// ============================================================
+	// WHEN
+	// ============================================================
+
+	/**
+	 * Generic GET request.
+	 *
+	 * This is the ONLY place where /auth/me is executed.
+	 */
+	// @When("I send a GET request to {string}")
+	public void send_get_request(String endpoint) {
+
+		Assert.assertEquals(endpoint, AuthEndpoints.AuthMe, "Unexpected Auth Me endpoint");
+
+		/*
+		 * If no Authorization value was explicitly configured, use the valid token from
+		 * TokenManager.
+		 *
+		 * This supports positive AuthMe scenarios.
+		 */
+		String requestAuthorization = authorizationValue;
+
+		if (requestAuthorization == null) {
+
+			String token = TokenManager.getToken();
+
+			Assert.assertNotNull(token, "Token is null. Login must be executed first.");
+
+			Assert.assertFalse(token.isBlank(), "Token is empty.");
+
+			requestAuthorization = "Bearer " + token;
+		}
+
+		System.out.println();
+		System.out.println("==========================================");
+		System.out.println("AUTH ME REQUEST");
+		System.out.println("Endpoint             : " + endpoint);
+		System.out.println("Authorization Header : " + requestAuthorization);
+		System.out.println("==========================================");
+
+		Response response = authMeService.getCurrentUserAuthMe(requestAuthorization);
+
+		/*
+		 * Store the REAL HTTP response in ScenarioContext.
+		 */
+		context.setResponse(response);
+
+		System.out.println();
+		System.out.println("========== AUTH ME RESPONSE ==========");
+
+		System.out.println("Status Code : " + response.getStatusCode());
+
+		System.out.println("Status Line : " + response.getStatusLine());
+
+		System.out.println("Body       : " + response.asPrettyString());
+
+		System.out.println("======================================");
+
+		/*
+		 * Parse response depending on HTTP status.
+		 */
+		if (response.getStatusCode() == 200) {
+
+			authResponse = authMeService.getAuthMeResponse(response);
+
+			context.setAuthMeUserId(authResponse.getUser().getUserId());
+
+			context.setAuthMeEmail(authResponse.getUser().getEmail());
+
+			System.out.println("Auth Me User ID : " + authResponse.getUser().getUserId());
+
+			System.out.println("Auth Me Email   : " + authResponse.getUser().getEmail());
+
+		} else {
+
+			baseErrorResponse = authMeService.getErrorResponse(response);
+
+			context.setBaseErrorResponse(baseErrorResponse);
+
+			System.out.println("Error : " + baseErrorResponse.getError());
+		}
+	}
+
+	@When("I send a GET request to {string}")
+	public void send_get_request_to(String endpoint) {
+
+		Assert.assertEquals(endpoint, AuthEndpoints.AuthMe, "Unexpected Auth Me endpoint");
+
+		String requestAuthorization = null;
+
+		/*
+		 * Determine whether Authorization header should be sent.
+		 */
+		if (authorizationHeaderRequired) {
+
+			requestAuthorization = authorizationValue;
+
+			/*
+			 * If no Authorization value was explicitly configured, use the valid token from
+			 * TokenManager.
+			 *
+			 * This supports positive AuthMe scenarios.
+			 */
+			if (requestAuthorization == null) {
+
+				String token = TokenManager.getToken();
+
+				Assert.assertNotNull(token, "Token is null. Login must be executed first.");
+
+				Assert.assertFalse(token.isBlank(), "Token is empty.");
+
+				requestAuthorization = "Bearer " + token;
+			}
+		}
+
+		System.out.println();
+		System.out.println("==========================================");
+		System.out.println("AUTH ME REQUEST");
+		System.out.println("Endpoint             : " + endpoint);
+
+		if (requestAuthorization != null) {
+
+			System.out.println("Authorization Header : " + requestAuthorization);
+
+		} else {
+
+			System.out.println("Authorization Header : NOT PROVIDED");
+		}
+
+		System.out.println("==========================================");
+
+		/*
+		 * Send request.
+		 */
+		Response response = authMeService.getCurrentUserAuthMe(requestAuthorization);
+
+		/*
+		 * Store REAL HTTP response.
+		 */
+		context.setResponse(response);
+
+		System.out.println();
+		System.out.println("========== AUTH ME RESPONSE ==========");
+		System.out.println("Status Code : " + response.getStatusCode());
+		System.out.println("Status Line : " + response.getStatusLine());
+		System.out.println("Body       : " + response.asPrettyString());
+		System.out.println("======================================");
+
+		/*
+		 * Parse response depending on HTTP status.
+		 */
+		if (response.getStatusCode() == 200) {
+
+			authResponse = authMeService.getAuthMeResponse(response);
+
+			context.setAuthMeUserId(authResponse.getUser().getUserId());
+
+			context.setAuthMeEmail(authResponse.getUser().getEmail());
+
+			System.out.println("Auth Me User ID : " + authResponse.getUser().getUserId());
+
+			System.out.println("Auth Me Email   : " + authResponse.getUser().getEmail());
+
+		} else {
+
+			baseErrorResponse = authMeService.getErrorResponse(response);
+
+			context.setBaseErrorResponse(baseErrorResponse);
+
+			System.out.println("Error : " + baseErrorResponse.getError());
+		}
+	}
+
+	@When("I send a {string} request to {string}")
+	public void i_send_a_request_to(String httpMethod, String endpoint) {
+
+		Assert.assertNotNull(httpMethod, "HTTP method must not be null");
+		Assert.assertNotNull(endpoint, "Endpoint must not be null");
+
+		httpMethod = httpMethod.toUpperCase();
+
+		Response response;
+
+		switch (httpMethod) {
+
+		case "GET":
+
+			// response = authMeService.getCurrentUserAuthMeWithValidToken();
+			Assert.assertEquals(endpoint, AuthEndpoints.AuthMe, "Unexpected Auth Me endpoint");
+
+			/*
+			 * If no Authorization value was explicitly configured, use the valid token from
+			 * TokenManager.
+			 *
+			 * This supports positive AuthMe scenarios.
+			 */
+			String requestAuthorization = authorizationValue;
+
+			if (requestAuthorization == null) {
+
+				String token = TokenManager.getToken();
+
+				Assert.assertNotNull(token, "Token is null. Login must be executed first.");
+
+				Assert.assertFalse(token.isBlank(), "Token is empty.");
+
+				requestAuthorization = "Bearer " + token;
+			}
+
+			System.out.println();
+			System.out.println("==========================================");
+			System.out.println("AUTH ME REQUEST");
+			System.out.println("Endpoint             : " + endpoint);
+			System.out.println("Authorization Header : " + requestAuthorization);
+			System.out.println("==========================================");
+
+			response = authMeService.getCurrentUserAuthMe(requestAuthorization);
+
+			/*
+			 * Store the REAL HTTP response in ScenarioContext.
+			 */
+			context.setResponse(response);
+
+			System.out.println();
+			System.out.println("========== AUTH ME RESPONSE ==========");
+
+			System.out.println("Status Code : " + response.getStatusCode());
+
+			System.out.println("Status Line : " + response.getStatusLine());
+
+			System.out.println("Body       : " + response.asPrettyString());
+
+			System.out.println("======================================");
+
+			/*
+			 * Parse response depending on HTTP status.
+			 */
+			if (response.getStatusCode() == 200) {
+
+				authResponse = authMeService.getAuthMeResponse(response);
+
+				context.setAuthMeUserId(authResponse.getUser().getUserId());
+
+				context.setAuthMeEmail(authResponse.getUser().getEmail());
+
+				System.out.println("Auth Me User ID : " + authResponse.getUser().getUserId());
+
+				System.out.println("Auth Me Email   : " + authResponse.getUser().getEmail());
+
+			} else {
+
+				baseErrorResponse = authMeService.getErrorResponse(response);
+
+				context.setBaseErrorResponse(baseErrorResponse);
+
+				System.out.println("Error : " + baseErrorResponse.getError());
+			}
+
+			break;
+
+		default:
+
+			throw new IllegalArgumentException("Unsupported HTTP method: " + httpMethod);
+		}
+
+		/*
+		 * Store the actual HTTP response so subsequent Then steps can use it.
+		 */
+		context.setResponse(response);
+
+		System.out.println();
+		System.out.println("==========================================");
+		System.out.println("HTTP REQUEST");
+		System.out.println("Method   : " + httpMethod);
+		System.out.println("Endpoint : " + endpoint);
+		System.out.println("==========================================");
+
+		System.out.println();
+		System.out.println("========== HTTP RESPONSE ==========");
+		System.out.println("Status Code : " + response.getStatusCode());
+		System.out.println("Status Line : " + response.getStatusLine());
+		System.out.println("Content Type: " + response.getContentType());
+		System.out.println("Body       : " + response.asPrettyString());
+		System.out.println("===================================");
+	}
+
+	// ============================================================
+	// THEN - STATUS
+	// ============================================================
+
+	@Then("the response should contain field {string}")
+	public void response_should_contain_field(String jsonPath) {
+
+		Assert.assertNotNull(context.getResponse(), "Response is null. API request may not have been executed.");
+
+		Object value = context.getResponse().jsonPath().get(jsonPath);
+
+		Assert.assertNotNull(value, "Response does not contain field: " + jsonPath);
+
+		System.out.println("Field [" + jsonPath + "] is present. Value: " + value);
+	}
+
+	// @Then("the response should contain field {string}")
+	public void response_should_contain_field_(String jsonPath) {
+
+		Assert.assertNotNull(context.getResponse(), "Response is null. API request may not have been executed.");
+
+		String responseBody = context.getResponse().asString();
+
+		io.restassured.path.json.JsonPath jsonPathParser = new io.restassured.path.json.JsonPath(responseBody);
+
+		Object value = jsonPathParser.get(jsonPath);
+
+		Assert.assertNotNull(value, "Field '" + jsonPath + "' is missing or null.");
+
+		System.out.println("✓ Field [" + jsonPath + "] exists");
+
+		System.out.println("  Value : " + value);
+	}
+
+	@Then("{string} should contain {string}")
+	public void the_field_should_contain(String jsonPath, String expectedValue) {
+
+		Assert.assertNotNull(context.getResponse(), "Response is null. API request may not have been executed.");
+
+		String actualValue = context.getResponse().jsonPath().getString(jsonPath);
+
+		Assert.assertNotNull(actualValue, "Field '" + jsonPath + "' is null or does not exist.");
+
+		System.out.println("Field       : " + jsonPath);
+
+		System.out.println("Actual Value: " + actualValue);
+
+		System.out.println("Expected to contain: " + expectedValue);
+
+		Assert.assertTrue(actualValue.contains(expectedValue),
+				"Field '" + jsonPath + "' value '" + actualValue + "' does not contain '" + expectedValue + "'");
+	}
+
+	
+	
+	@Then("the response content type should be {string}")
+	public void the_response_content_type_should_be(String expectedContentType) {
+
+		Assert.assertNotNull(context.getResponse(), "Response is null. HTTP request must be executed first.");
+
+		Response response = context.getResponse();
+
+		String actualContentType = response.getContentType();
+
+		System.out.println();
+		System.out.println("==========================================");
+		System.out.println("RESPONSE CONTENT TYPE VALIDATION");
+		System.out.println("Expected Content Type : " + expectedContentType);
+		System.out.println("Actual Content Type   : " + actualContentType);
+		System.out.println("==========================================");
+
+		/*
+		 * Content-Type may contain charset.
+		 *
+		 * Example: application/json
+		 *
+		 * or: application/json; charset=utf-8
+		 *
+		 * Therefore compare only the media type.
+		 */
+		String actualMediaType = actualContentType.split(";")[0].trim();
+
+		Assert.assertEquals(actualMediaType, expectedContentType, "Unexpected response Content-Type");
+	}
+
+	@Then("the response status code should be {int}")
+	public void response_status_code_should_be(int expectedStatusCode) {
+
+		Assert.assertNotNull(context.getResponse(), "Response is null.");
+
+		int actualStatusCode = context.getResponse().getStatusCode();
+
+		System.out.println("Expected Status Code : " + expectedStatusCode);
+
+		System.out.println("Actual Status Code   : " + actualStatusCode);
+
+		Assert.assertEquals(actualStatusCode, expectedStatusCode, "Unexpected response status code");
+	}
+
+	// ============================================================
+	// THEN - ERROR
+	// ============================================================
+
+	@Then("the auth response error message should be {string}")
+	public void response_error_message_should_be(String expectedError) {
+
+		Assert.assertNotNull(context.getResponse(), "Response is null.");
+
+		Assert.assertNotNull(context.getBaseErrorResponse(), "Error response is null.");
+
+		String actualError = context.getBaseErrorResponse().getError();
+
+		System.out.println("Expected Error : " + expectedError);
+
+		System.out.println("Actual Error   : " + actualError);
+
+		Assert.assertEquals(actualError, expectedError, "Unexpected authentication error");
+	}
+
+	@Then("the auth response errors {string}")
+	public void auth_authentication_error(String expectedError) {
+
+		response_error_message_should_be(expectedError);
+	}
+
+	// ============================================================
+	// THEN - SUCCESS RESPONSE
+	// ============================================================
+
+	@Then("the response field success should be {string}")
+	public void response_success_should_be(String expectedSuccess) {
+
+		Assert.assertNotNull(authResponse, "Auth Me response is null.");
+
+		boolean expected = Boolean.parseBoolean(expectedSuccess);
+
+		boolean actual = authResponse.isSuccess();
+
+		System.out.println("Expected Success : " + expected);
+
+		System.out.println("Actual Success   : " + actual);
+
+		Assert.assertEquals(actual, expected, "Unexpected success value");
+	}
+
+	@Then("the response should contain user")
+	public void response_should_contain_user() {
+
+		Assert.assertNotNull(authResponse, "Auth Me response is null");
+
+		Assert.assertNotNull(authResponse.getUser(), "User object is missing from Auth Me response");
+
+		System.out.println();
+		System.out.println("==========================================");
+		System.out.println("USER OBJECT VALIDATION");
+		System.out.println("User ID : " + authResponse.getUser().getUserId());
+		System.out.println("Email   : " + authResponse.getUser().getEmail());
+		System.out.println("==========================================");
+	}
+
+	// ============================================================
+	// USER ID
+	// ============================================================
+
+	@Then("the login user id should be same as auth me user id")
+	public void login_user_id_should_be_same_as_auth_me_user_id() {
+
+		Integer loginUserId = context.getLoginUserId();
+
+		Integer authMeUserId = context.getAuthMeUserId();
+
+		Assert.assertNotNull(loginUserId, "Login user ID is null.");
+
+		Assert.assertNotNull(authMeUserId, "Auth Me user ID is null.");
+
+		Assert.assertEquals(authMeUserId, loginUserId, "Login and Auth Me user IDs do not match.");
+	}
+
+	// ============================================================
+	// EMAIL
+	// ============================================================
+
+	@Then("the login user email should be same as auth me user email")
+	public void login_user_email_should_be_same_as_auth_me_user_email() {
+
+		String loginEmail = context.getLoginEmail();
+
+		String authMeEmail = context.getAuthMeEmail();
+
+		Assert.assertNotNull(loginEmail, "Login email is null.");
+
+		Assert.assertNotNull(authMeEmail, "Auth Me email is null.");
+
+		Assert.assertEquals(authMeEmail, loginEmail, "Login and Auth Me emails do not match.");
+	}
+
+	// ============================================================
+	// CONTENT TYPE
+	// ============================================================
+
+	@Then("the response content type should contain {string}")
+	public void response_content_type_should_contain(String expectedContentType) {
+
+		Assert.assertNotNull(context.getResponse(), "Response is null.");
+
+		String actualContentType = context.getResponse().contentType().split(";")[0].trim();
+
+		System.out.println("Content Type : " + actualContentType);
+
+		Assert.assertTrue(actualContentType.contains(expectedContentType),
+				"Expected content type to contain '" + expectedContentType + "' but found '" + actualContentType + "'");
+	}
+
+	// ============================================================
+	// GENERIC JSON FIELD VALIDATION
+	// ============================================================
+
+	@Then("the response field {string} should be present")
+	public void response_field_should_be_present(String jsonPath) {
+
+		Object value = context.getResponse().jsonPath().get(jsonPath);
+
+		Assert.assertNotNull(value, "Field '" + jsonPath + "' is missing or null.");
+	}
+
+	@Then("the response field {string} should be a number")
+	public void response_field_should_be_a_number(String jsonPath) {
+
+		Object value = context.getResponse().jsonPath().get(jsonPath);
+
+		Assert.assertNotNull(value, "Field '" + jsonPath + "' is null.");
+
+		Assert.assertTrue(value instanceof Number, "Field '" + jsonPath + "' is not numeric.");
+	}
+
+	@Then("the {string} value should be less than the {string} value")
+	public void value_should_be_less_than_another_value(String firstFieldPath, String secondFieldPath) {
+
+		Object firstValue = context.getResponse().jsonPath().get(firstFieldPath);
+
+		Object secondValue = context.getResponse().jsonPath().get(secondFieldPath);
+
+		Assert.assertNotNull(firstValue, "Field '" + firstFieldPath + "' is missing.");
+
+		Assert.assertNotNull(secondValue, "Field '" + secondFieldPath + "' is missing.");
+
+		Assert.assertTrue(firstValue instanceof Number, firstFieldPath + " is not numeric.");
+
+		Assert.assertTrue(secondValue instanceof Number, secondFieldPath + " is not numeric.");
+
+		long first = ((Number) firstValue).longValue();
+
+		long second = ((Number) secondValue).longValue();
+
+		Assert.assertTrue(first < second,
+				firstFieldPath + " (" + first + ") " + "is not less than " + secondFieldPath + " (" + second + ")");
+	}
+
+	// ============================================================
+	// USER IAT
+	// ============================================================
+
+	@Then("the response field user.iat should be present")
+	public void response_field_iat_should_be_present() {
+
+		Assert.assertNotNull(authResponse, "Auth Me response is null.");
+
+		Assert.assertNotNull(authResponse.getUser().getIat(), "user.iat is null.");
+	}
+
+	@Then("the response field user.iat should be a number")
+	public void response_field_iat_should_be_a_number() {
+
+		Object value = authResponse.getUser().getIat();
+
+		Assert.assertNotNull(value, "user.iat is null.");
+
+		Assert.assertTrue(value instanceof Number, "user.iat is not numeric.");
+	}
+
+	// ============================================================
+	// TOKEN
+	// ============================================================
+
+	@Then("store the token")
+	public void save_token() {
+
+		Assert.assertNotNull(context.getResponse(), "Login response is null.");
+
+		String token = context.getResponse().jsonPath().getString("token");
+
+		Assert.assertNotNull(token, "Token is null.");
+
+		Assert.assertFalse(token.isBlank(), "Token is empty.");
+
+		TokenManager.setToken(token);
+
+		System.out.println("Token saved in TokenManager.");
+	}
+}

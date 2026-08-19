@@ -1,4 +1,4 @@
-package stepdefinitions;
+package docs;
 
 import java.util.Map;
 
@@ -6,6 +6,7 @@ import org.testng.Assert;
 
 import constants.HttpConstants;
 import context.ScenarioContext;
+
 import endpoints.AuthEndpoints;
 import io.cucumber.datatable.DataTable;
 import io.cucumber.java.en.Given;
@@ -25,14 +26,28 @@ import services.LoginService;
 import services.RegisterService;
 import utils.TokenManager;
 
-public class LoginSteps {
+public class LoginSteps2 {
 	
 	//private TestContext context;
 	
+	// Static response variable or shared context can be used for responses
+    public static Response sharedResponse; 
+	
 	private String email;
+	private String password;
+
+	private String registrationToken;
+	private int userId;
+
+    private Response authenticatedResponse;
+    private String jwtToken;
+    
+    private String acceptHeader;
 
     private String contentTypeHeader;
-	    
+	
+    private RequestSpecification request;
+    
 	public RegisterRequest registerRequest;
 
 	public LoginService loginService = new LoginService();
@@ -40,16 +55,14 @@ public class LoginSteps {
 	
 	public LoginErrorResponse loginErrorResponse;
 
-	//private Response response;
+	private Response response;
 	
 	public UserResponse userResponse;
 	
 	private ScenarioContext context;
-
-	private String acceptHeader;
 	
     // PicoContainer automatically injects this
-    public LoginSteps(ScenarioContext context) {
+    public LoginSteps2(ScenarioContext context) {
         this.context = context;
     }
 	
@@ -68,13 +81,13 @@ public class LoginSteps {
 		// Common Response Information
 		// --------------------------------------------------------
 
-		if (context.getResponse() != null) {
+		if (response != null) {
 
-			System.out.println("Status Code : " + context.getResponse().statusCode());
+			System.out.println("Status Code : " + response.statusCode());
 
 			System.out.println("Response Body:");
 
-			System.out.println(context.getResponse().asPrettyString());
+			System.out.println(response.asPrettyString());
 		}
 
 		// --------------------------------------------------------
@@ -84,11 +97,13 @@ public class LoginSteps {
 		if (loginResponse != null) {
 
 			System.out.println("Success : " + loginResponse.isSuccess());
+
 			System.out.println("Token : " + loginResponse.getToken());
 
 			if (loginResponse.getUser() != null) {
 
 				System.out.println("User ID : " + loginResponse.getUser().getId());
+
 				System.out.println("User Email : " + loginResponse.getUser().getEmail());
 			}
 		}
@@ -100,8 +115,10 @@ public class LoginSteps {
 		if (loginErrorResponse != null) {
 
 			System.out.println("Success : " + loginErrorResponse.isSuccess());
+
 			System.out.println("Error : " + loginErrorResponse.getError());
-		
+
+			
 		}
 
 		System.out.println("========================================");
@@ -155,8 +172,8 @@ public class LoginSteps {
 			// FIRST SEND THE REQUEST
 			// ---------------------------------------------
 
-			Response response = loginService.loginUser(registerRequest);
-			context.setResponse(response);
+			response = loginService.loginUser(registerRequest);
+
 			// ---------------------------------------------
 			// THEN CHECK THE RESPONSE STATUS
 			// ---------------------------------------------
@@ -170,16 +187,6 @@ public class LoginSteps {
 				System.out.println("User Id : " + loginResponse.getUser().getId());
 				System.out.println("User email : " + loginResponse.getUser().getEmail());	
 				
-				// Store Login User ID
-			    Integer loginUserId = loginResponse.getUser().getId();
-			    context.setLoginUserId(loginUserId);
-			    System.out.println("Login User ID stored in context : " + loginUserId);
-			    
-				// Store Login User ID
-			    String loginEmail = loginResponse.getUser().getEmail();
-			    context.setLoginEmail(loginEmail);
-			    System.out.println("Login User ID stored in context : " + loginEmail);
-				
 				// Store response and token in the shared context
 		        //context.setResponse(response);
 		        			
@@ -188,9 +195,8 @@ public class LoginSteps {
 				// -----------------------------------------
 
 		        String token = response.jsonPath().getString("token");
-		        context.setToken(token);
-		        TokenManager.setToken(token);
-		      
+		        //context.setToken(token);
+		        
 		        // Store it securely in your ThreadLocal TokenManager
 		        
 				if (token != null && !token.isBlank()) {
@@ -294,7 +300,14 @@ public class LoginSteps {
 			throw new IllegalArgumentException("Unsupported HTTP method: " + httpMethod);
 		}
 
-		
+		System.out.println("HTTP Method : " + httpMethod);
+
+		System.out.println("Status Code : " + response.statusCode());
+
+		System.out.println("Response Body:");
+		System.out.println(response.asPrettyString());
+
+		printResponse();
 	}
 	
 //======================================  THEN  ==========================================================
@@ -307,13 +320,13 @@ public class LoginSteps {
 	@Then("the login response status code should be {int}")
 	public void the_registration_response_status_code_should_be(Integer expectedStatusCode) {
 
-		Assert.assertEquals(context.getResponse().statusCode(), expectedStatusCode.intValue(), "Unexpected response status code");
+		Assert.assertEquals(response.statusCode(), expectedStatusCode.intValue(), "Unexpected response status code");
 	}
 	
 	@Then("the response success should be {string}")
 	public void response_of_success_field(String expectedSuccess) {
 		boolean expected = Boolean.parseBoolean(expectedSuccess);
-		boolean actual = context.getResponse().jsonPath().getBoolean("success");
+		boolean actual = response.jsonPath().getBoolean("success");
 		System.out.println("Expected Success : " + expected);
 		System.out.println("Actual Success : " + actual);
 		//Assert.assertTrue(response.jsonPath().getBoolean("success"), "Expected success to be true");
@@ -322,9 +335,8 @@ public class LoginSteps {
 	
 	@Then("the login response should contain a non-empty token")
 	public void response_should_contain_a_non_empty_token() {
-		String token = context.getResponse().jsonPath().getString("token");
+		String token = response.jsonPath().getString("token");
 		System.out.println("Token : " + token);
-		context.setToken(token);
 		Assert.assertNotNull(token, "Token is null");
 		Assert.assertNotNull(token, "JWT Auth token was null in the response.");
 	    Assert.assertFalse(token.trim().isEmpty(), "JWT Auth token was returned empty.");
@@ -348,7 +360,7 @@ public class LoginSteps {
 	@Then("the response contain accept is {string}")
 	public void response_contain_accept_is(String expectedContentType) {
 		// application/json; charset=utf-8
-		String actual = context.getResponse().getContentType();
+		String actual = response.getContentType();
 		// Split by semicolon and extract the first element, then remove extra spaces
 		String actualContentType = contentTypeHeader.split(";")[0].trim();
 		System.out.println("\nContentType : "+actualContentType);
@@ -359,7 +371,7 @@ public class LoginSteps {
 	@Then("the response user login user id {int}")
 	public void response_user_login_user_id(Integer user_id) {
 		// 2. Extract the nested integer field
-		int actualUserId = context.getResponse().jsonPath().getInt("user.id");
+		int actualUserId = response.jsonPath().getInt("user.id");
 
 		System.out.println("Extracted User ID: " + actualUserId);
 		Assert.assertEquals(actualUserId, user_id, "User ID verification failed!");

@@ -22,7 +22,7 @@ public final class ApiConstants {
 	// Authentication
 	// ==============================
 
-	public static final String AUTH = "/auth";
+	public static final String AUTH = "/api/auth";
 	
 	public static final String REGISTER = AUTH + "/register";
 	

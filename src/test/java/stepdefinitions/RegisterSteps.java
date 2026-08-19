@@ -45,18 +45,10 @@ import constants.HttpConstants;
 import endpoints.RegisterEndpoints;
 
 public class RegisterSteps {
-
+   
 	private String email;
 	private String password;
-
-	private String registrationToken;
-	private int userId;
-
-    private Response authenticatedResponse;
-    private String jwtToken;
 	
-    private RequestSpecification request;
-    
 	public RegisterRequest registerRequest;
 
 	public RegisterService registerService = new RegisterService();
@@ -272,7 +264,7 @@ public class RegisterSteps {
 	// =========================================================
 	// THEN - STATUS CODE
 	// =========================================================
-	@Then("the response status code should be {int}")
+	//@Then("the response status code should be {int}")
 	@Then("the registration response status code should be {int}")
 	public void the_registration_response_status_code_should_be(Integer expectedStatusCode) {
 
@@ -373,7 +365,7 @@ public class RegisterSteps {
 	@Then("the {string} field should be a string")
 	public void the_field_should_be_a_string(String path) {
 		Object value = response.jsonPath().get(path);
-        Assert.assertTrue(value instanceof String, path + " is not a String");;
+        Assert.assertTrue(value instanceof String, path + " is not a String");
 	}
 	
 	@Then("the {string} field should be an object")

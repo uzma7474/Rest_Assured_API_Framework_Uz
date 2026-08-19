@@ -17,6 +17,13 @@ public final class AuthEndpoints {
 	 */
 	public static final String LOGIN = "/api/auth/login";
 
+	
+	/**
+	 * Auth me endpoint
+	 */
+	public static final String AuthMe = "/api/auth/me";
+	
+	
 	/**
 	 * Logout endpoint. POST /auth/logout
 	 */

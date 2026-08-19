@@ -3,6 +3,10 @@ package services;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import models.requests.RegisterRequest;
+import models.response.BaseErrorResponse;
+import models.response.LoginErrorResponse;
+import models.response.LoginResponse;
+import models.response.RegisterErrorResponse;
 import models.response.RegisterResponse;
 
 //Core REST Assured methods (given(), when(), get(), post(), etc.)
@@ -21,7 +25,7 @@ import static io.restassured.matcher.RestAssuredMatchers.*;
 public class LoginService extends BaseApi{
 	
 	private RequestSpecification requestSpecification;
-	public RegisterRequest registerRequest;
+	public RegisterRequest loginRequest;
 	public RequestSpecification requestSpecTextContent;
 	
 	
@@ -29,7 +33,7 @@ public class LoginService extends BaseApi{
 		this.requestSpecification = getRequestSpec();
 		
 		//this.registerRequest = new RegisterRequest(ConfigManager.getProperty("email"), ConfigManager.getProperty("password"));
-		this.registerRequest = new RegisterRequest();
+		this.loginRequest = new RegisterRequest();
 	}
 	
 	/**
@@ -48,18 +52,39 @@ public class LoginService extends BaseApi{
 	}
 	
 	
-	public RegisterResponse loginUserUsingPojo(Response res) {
+	public LoginResponse loginUserUsingPojo(Response res) {
 		Response response = res.then()
 								.extract()
 								.response();
 		
-		if (response.statusCode() == 201) {
-	        return response.as(RegisterResponse.class);
+		if (response.statusCode() == 200) {
+	        return response.as(LoginResponse.class);
 	    }
 
 	    return null;
 						
 	}
+	
+	
+	public LoginErrorResponse loginUserUsingPojo_failure(Response res) {
+		Response response = res.then()
+								.extract()
+								.response();
+		
+		if (response.statusCode() != 200) {
+	        return response.as(LoginErrorResponse.class);
+	    }
+
+	    return null;
+						
+	}
+	
+	
+	public void authenticateUserUsingBearerToken(String token) {
+		
+	}
+	
+	
 	
 	
 
