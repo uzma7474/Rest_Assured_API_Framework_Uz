@@ -151,4 +151,48 @@ public final class RequestSpecificationFactory {
 
 				.build();
 	}
+	
+	
+	public static RequestSpecification createApiRequestSpecificationForBooking() {
+		
+		String baseUrl = ConfigManager.getProperty("booking.baseUrl");
+		System.out.println("Base Url : "+baseUrl);
+		
+		int requestTimeout = ConfigManager.getIntProperty("request.timeout", 30000);
+
+		int connectionTimeout = ConfigManager.getIntProperty("connection.timeout", 30000);
+
+		int socketTimeout = ConfigManager.getIntProperty("socket.timeout", 30000);
+		
+		RequestSpecBuilder builder = new RequestSpecBuilder();
+		builder
+			.setBaseUri(baseUrl)
+			.setContentType(ContentType.JSON)
+			.setAccept(ContentType.JSON)
+			.setConfig(RestAssuredConfig.config()
+					.httpClient(HttpClientConfig.httpClientConfig()
+						.setParam("http.connection.timeout", connectionTimeout)
+						.setParam("http.socket.timeout", socketTimeout)
+						.setParam("http.connection-manager.timeout", requestTimeout)));
+		
+		return builder.build();
+				
+	}
+	
+	public static RequestSpecification createApiRequestSpecForBookingGivenContentType(ContentType contentType) {
+
+	    if (contentType == null) {
+	        throw new IllegalArgumentException("ContentType passed to createApiRequestSpecForBookingGivenContentType() is null");
+	    }
+
+	    String baseUrl = ConfigManager.getProperty("booking.baseUrl");
+
+	    return new RequestSpecBuilder()
+	            .setBaseUri(baseUrl)
+	            .setContentType(contentType)
+	            .setAccept(ContentType.JSON)
+	            .build();
+	}
+	
+	
 }

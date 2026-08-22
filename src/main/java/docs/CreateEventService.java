@@ -4,7 +4,6 @@ import static io.restassured.RestAssured.given;
 
 import base.BaseApi;
 import base.RequestSpecificationFactory;
-import endpoints.EventsEnpoints;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import utils.TokenManager;

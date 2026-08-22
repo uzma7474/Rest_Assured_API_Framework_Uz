@@ -13,7 +13,7 @@ import org.testng.annotations.Listeners;
 				"json:target/cucumber-reports/cucumber.json",
 				"junit:target/cucumber-reports/cucumber.xml" 
 	}, 
-	tags = "@AuthMe21", 
+	tags = "@Booking60", 
 	publish = false, 
 	dryRun = false, 
 	monochrome = true)

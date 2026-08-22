@@ -7,7 +7,6 @@ import utils.TokenManager;
 import static io.restassured.RestAssured.given;
 
 import base.BaseApi;
-import endpoints.EventsEnpoints;
 
 public class EventsService extends BaseApi {
 

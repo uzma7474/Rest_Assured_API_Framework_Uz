@@ -1,4 +1,4 @@
-package endpoints;
+package docs;
 
 public class EventsEnpoints {
 	

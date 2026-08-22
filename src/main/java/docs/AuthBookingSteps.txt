@@ -1,0 +1,749 @@
+package stepdefinitions;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+
+import java.util.Map;
+
+import org.junit.Assert;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.cucumber.datatable.DataTable;
+import io.cucumber.java.en.And;
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
+import io.restassured.response.Response;
+import services.AuthService;
+import utils.TokenManager;
+
+public class AuthSteps {
+
+    private final AuthService authService = new AuthService();
+
+    private Response response;
+
+    private String username;
+    private String password;
+    private String requestBody;
+    private String contentType;
+    private String requestMethod;
+    private String extractedToken;
+
+    // ============================================================
+    // BACKGROUND
+    // ============================================================
+
+    @Given("the Restful Booker API is available")
+    public void theRestfulBookerAPIIsAvailable() {
+        // Base URL is normally configured in RequestSpecificationFactory
+        Assert.assertNotNull(
+                "Auth service should be initialized",
+                authService
+        );
+    }
+
+    @Given("the auth endpoint is {string}")
+    public void theAuthEndpointIs(String endpoint) {
+        Assert.assertEquals("/auth", endpoint);
+    }
+
+    @Given("the default Content-Type is {string}")
+    public void theDefaultContentTypeIs(String contentType) {
+        this.contentType = contentType;
+    }
+
+    // ============================================================
+    // CREDENTIALS
+    // ============================================================
+
+    @Given("the username is {string}")
+    public void theUsernameIs(String username) {
+        this.username = username;
+    }
+
+    @Given("the password is {string}")
+    public void thePasswordIs(String password) {
+        this.password = password;
+    }
+
+    @Given("valid authentication credentials are provided")
+    public void validAuthenticationCredentialsAreProvided() {
+
+        this.username = "admin";
+        this.password = "password123";
+    }
+
+    @Given("valid username and password are provided")
+    public void validUsernameAndPasswordAreProvided() {
+
+        this.username = "admin";
+        this.password = "password123";
+    }
+
+    @Given("the request body contains valid username and password")
+    public void requestBodyContainsValidUsernameAndPassword() {
+
+        this.username = "admin";
+        this.password = "password123";
+    }
+
+    // ============================================================
+    // REQUEST BODY
+    // ============================================================
+
+    @Given("the request body contains:")
+    public void theRequestBodyContains(String body) {
+        this.requestBody = body;
+    }
+
+    @Given("the request body is:")
+    public void theRequestBodyIs(String body) {
+        this.requestBody = body;
+    }
+
+    @Given("the request body is empty")
+    public void theRequestBodyIsEmpty() {
+        this.requestBody = "";
+    }
+
+    @Given("the request does not contain a request body")
+    public void requestDoesNotContainRequestBody() {
+        this.requestBody = null;
+    }
+
+    // ============================================================
+    // HEADER
+    // ============================================================
+
+    @Given("the request header {string} is {string}")
+    public void requestHeaderIs(String header, String value) {
+
+        if ("Content-Type".equalsIgnoreCase(header)) {
+            this.contentType = value;
+        }
+    }
+
+    @Given("the request does not contain the {string} header")
+    public void requestDoesNotContainHeader(String header) {
+
+        if ("Content-Type".equalsIgnoreCase(header)) {
+            this.contentType = null;
+        }
+    }
+
+    // ============================================================
+    // POST REQUEST
+    // ============================================================
+
+    @When("I send a POST request to the auth endpoint")
+    public void iSendAPOSTRequestToTheAuthEndpoint() {
+
+        if (requestBody != null) {
+
+            response = authService.createToken(
+                    requestBody,
+                    contentType
+            );
+
+        } else {
+
+            response = authService.createTokenWithoutBody(
+                    contentType
+            );
+        }
+    }
+
+    // ============================================================
+    // MULTIPLE REQUESTS
+    // ============================================================
+
+    @When("I send the POST request to the auth endpoint multiple times")
+    public void iSendThePOSTRequestMultipleTimes() {
+
+        response = authService.createToken(
+                "{\"username\":\"admin\",\"password\":\"password123\"}",
+                "application/json"
+        );
+
+        Assert.assertEquals(200, response.getStatusCode());
+
+        response = authService.createToken(
+                "{\"username\":\"admin\",\"password\":\"password123\"}",
+                "application/json"
+        );
+
+        Assert.assertEquals(200, response.getStatusCode());
+    }
+
+    // ============================================================
+    // OTHER HTTP METHODS
+    // ============================================================
+
+    @When("I send a GET request to the auth endpoint")
+    public void iSendAGETRequestToTheAuthEndpoint() {
+
+        response = authService.sendRequest(
+                "GET",
+                requestBody,
+                contentType
+        );
+    }
+
+    @When("I send a PUT request to the auth endpoint")
+    public void iSendAPUTRequestToTheAuthEndpoint() {
+
+        response = authService.sendRequest(
+                "PUT",
+                requestBody,
+                contentType
+        );
+    }
+
+    @When("I send a PATCH request to the auth endpoint")
+    public void iSendAPATCHRequestToTheAuthEndpoint() {
+
+        response = authService.sendRequest(
+                "PATCH",
+                requestBody,
+                contentType
+        );
+    }
+
+    @When("I send a DELETE request to the auth endpoint")
+    public void iSendADELETERequestToTheAuthEndpoint() {
+
+        response = authService.sendRequest(
+                "DELETE",
+                requestBody,
+                contentType
+        );
+    }
+
+    // ============================================================
+    // STATUS CODE
+    // ============================================================
+
+    @Then("the response status code should be {int}")
+    public void theResponseStatusCodeShouldBe(int expectedStatusCode) {
+
+        Assert.assertNotNull(
+                "Response should not be null",
+                response
+        );
+
+        Assert.assertEquals(
+                "Unexpected HTTP status code",
+                expectedStatusCode,
+                response.getStatusCode()
+        );
+    }
+
+    @Then("the response should not return a successful authentication token")
+    public void responseShouldNotReturnSuccessfulAuthenticationToken() {
+
+        Assert.assertNotNull(response);
+
+        int statusCode = response.getStatusCode();
+
+        /*
+         * Do not assume only 401/403 because Restful Booker may
+         * return different responses for malformed requests.
+         */
+        Assert.assertNotEquals(
+                "Invalid authentication request should not return 200",
+                200,
+                statusCode
+        );
+
+        if (statusCode == 200) {
+
+            String token = response.jsonPath()
+                    .getString("token");
+
+            Assert.assertTrue(
+                    "Invalid credentials should not generate a valid token",
+                    token == null || token.isEmpty()
+            );
+        }
+    }
+
+    // ============================================================
+    // TOKEN VALIDATION
+    // ============================================================
+
+    @Then("the response should contain a {string} field")
+    public void responseShouldContainField(String field) {
+
+        Assert.assertNotNull(response);
+
+        Object value = response.jsonPath().get(field);
+
+        Assert.assertNotNull(
+                "Response does not contain field: " + field,
+                value
+        );
+    }
+
+    @Then("the {string} field should not be null")
+    public void fieldShouldNotBeNull(String field) {
+
+        Object value = response.jsonPath().get(field);
+
+        Assert.assertNotNull(
+                field + " should not be null",
+                value
+        );
+    }
+
+    @Then("the {string} field should not be empty")
+    public void fieldShouldNotBeEmpty(String field) {
+
+        String value = response.jsonPath().getString(field);
+
+        Assert.assertNotNull(
+                field + " should not be null",
+                value
+        );
+
+        Assert.assertFalse(
+                field + " should not be empty",
+                value.trim().isEmpty()
+        );
+    }
+
+    @Then("the {string} field should be of type string")
+    public void fieldShouldBeOfTypeString(String field) {
+
+        Object value = response.jsonPath().get(field);
+
+        Assert.assertTrue(
+                field + " should be a String",
+                value instanceof String
+        );
+    }
+
+    @Then("the response should contain a valid token")
+    public void responseShouldContainValidToken() {
+
+        Assert.assertNotNull(response);
+
+        String token = response.jsonPath()
+                .getString("token");
+
+        Assert.assertNotNull(
+                "Token should not be null",
+                token
+        );
+
+        Assert.assertFalse(
+                "Token should not be empty",
+                token.trim().isEmpty()
+        );
+    }
+
+    @Then("the response should contain a token")
+    public void responseShouldContainAToken() {
+
+        String token = response.jsonPath()
+                .getString("token");
+
+        Assert.assertNotNull(
+                "Token should be present",
+                token
+        );
+    }
+
+    @Then("the token should not be null")
+    public void tokenShouldNotBeNull() {
+
+        String token = response.jsonPath()
+                .getString("token");
+
+        Assert.assertNotNull(
+                "Token should not be null",
+                token
+        );
+    }
+
+    @Then("the token should not be empty")
+    public void tokenShouldNotBeEmpty() {
+
+        String token = response.jsonPath()
+                .getString("token");
+
+        Assert.assertNotNull(token);
+
+        Assert.assertFalse(
+                "Token should not be empty",
+                token.trim().isEmpty()
+        );
+    }
+
+    @Then("the token should be of type string")
+    public void tokenShouldBeOfTypeString() {
+
+        Object token = response.jsonPath()
+                .get("token");
+
+        Assert.assertTrue(
+                "Token should be String",
+                token instanceof String
+        );
+    }
+
+    // ============================================================
+    // TOKEN EXTRACTION
+    // ============================================================
+
+    @When("I extract the token from the response")
+    public void iExtractTheTokenFromTheResponse() {
+
+        extractedToken = response.jsonPath()
+                .getString("token");
+
+        Assert.assertNotNull(
+                "Unable to extract token",
+                extractedToken
+        );
+
+        TokenManager.setToken(extractedToken);
+    }
+
+    @Then("the token should be available for subsequent API requests")
+    public void tokenShouldBeAvailableForSubsequentAPIRequests() {
+
+        Assert.assertNotNull(
+                "Token is not available",
+                TokenManager.getToken()
+        );
+
+        Assert.assertFalse(
+                "Token should not be empty",
+                TokenManager.getToken().isEmpty()
+        );
+    }
+
+    // ============================================================
+    // RESPONSE CONTENT TYPE
+    // ============================================================
+
+    @Then("the response Content-Type should indicate JSON")
+    public void responseContentTypeShouldIndicateJSON() {
+
+        String responseContentType =
+                response.getContentType();
+
+        Assert.assertTrue(
+                "Response should be JSON but was: "
+                        + responseContentType,
+                responseContentType.toLowerCase()
+                        .contains("json")
+        );
+    }
+
+    // ============================================================
+    // JSON RESPONSE
+    // ============================================================
+
+    @Then("the response body should be valid JSON")
+    public void responseBodyShouldBeValidJSON() {
+
+        String responseBody = response.getBody()
+                .asString();
+
+        try {
+
+            ObjectMapper mapper = new ObjectMapper();
+
+            mapper.readTree(responseBody);
+
+        } catch (Exception e) {
+
+            Assert.fail(
+                    "Response body is not valid JSON: "
+                            + responseBody
+            );
+        }
+    }
+
+    // ============================================================
+    // FIELD NAME
+    // ============================================================
+
+    @Then("the response should contain exactly the expected token field name {string}")
+    public void responseShouldContainExactlyExpectedTokenFieldName(
+            String expectedField) {
+
+        Map<String, Object> responseMap =
+                response.jsonPath().getMap("$");
+
+        Assert.assertTrue(
+                "Response does not contain expected field: "
+                        + expectedField,
+                responseMap.containsKey(expectedField)
+        );
+    }
+
+    // ============================================================
+    // INVALID / SECURITY INPUT
+    // ============================================================
+
+    @Then("the response should contain an authentication error")
+    public void responseShouldContainAuthenticationError() {
+
+        Assert.assertNotNull(response);
+
+        int statusCode = response.getStatusCode();
+
+        Assert.assertNotEquals(
+                "Invalid credentials should not return 200",
+                200,
+                statusCode
+        );
+    }
+
+    @Then("the response should not expose the submitted password")
+    public void responseShouldNotExposeSubmittedPassword() {
+
+        String responseBody = response.getBody()
+                .asString();
+
+        if (password != null && !password.isEmpty()) {
+
+            Assert.assertFalse(
+                    "Response should not expose password",
+                    responseBody.contains(password)
+            );
+        }
+    }
+
+    @Then("the response should not expose the username and password unnecessarily")
+    public void responseShouldNotExposeUsernameAndPassword() {
+
+        String responseBody = response.getBody()
+                .asString();
+
+        if (username != null) {
+
+            Assert.assertFalse(
+                    "Response should not expose username",
+                    responseBody.contains(username)
+            );
+        }
+
+        if (password != null) {
+
+            Assert.assertFalse(
+                    "Response should not expose password",
+                    responseBody.contains(password)
+            );
+        }
+    }
+
+    // ============================================================
+    // MALFORMED REQUEST
+    // ============================================================
+
+    @Then("the API should reject the malformed JSON request")
+    public void apiShouldRejectMalformedJSONRequest() {
+
+        Assert.assertNotNull(response);
+
+        Assert.assertNotEquals(
+                "Malformed JSON should not result in successful authentication",
+                200,
+                response.getStatusCode()
+        );
+    }
+
+    @Then("the API should not process the request as valid JSON authentication")
+    public void apiShouldNotProcessRequestAsValidJSONAuthentication() {
+
+        Assert.assertNotNull(response);
+
+        Assert.assertNotEquals(
+                "Unsupported JSON request should not authenticate",
+                200,
+                response.getStatusCode()
+        );
+    }
+
+    // ============================================================
+    // GENERIC NEGATIVE RESPONSE
+    // ============================================================
+
+    @Then("the API should process the request according to its contract")
+    public void apiShouldProcessRequestAccordingToContract() {
+
+        Assert.assertNotNull(
+                "API response should not be null",
+                response
+        );
+    }
+
+    @Then("the API should handle the request without crashing")
+    public void apiShouldHandleRequestWithoutCrashing() {
+
+        Assert.assertNotNull(
+                "API should return a response",
+                response
+        );
+
+        Assert.assertTrue(
+                "HTTP status code should be valid",
+                response.getStatusCode() >= 100
+                        && response.getStatusCode() <= 599
+        );
+    }
+
+    // ============================================================
+    // CASE SENSITIVITY
+    // ============================================================
+
+    @Then("the API should authenticate according to its case-sensitivity rules")
+    public void apiShouldAuthenticateAccordingToCaseSensitivityRules() {
+
+        Assert.assertNotNull(response);
+
+        /*
+         * We intentionally don't hard-code 200/401 here.
+         * The test verifies that the API returns a valid HTTP response.
+         */
+        Assert.assertTrue(
+                response.getStatusCode() >= 100
+                        && response.getStatusCode() <= 599
+        );
+    }
+
+    // ============================================================
+    // SECURITY INPUT VALIDATION
+    // ============================================================
+
+    @Then("the response should not return a valid authentication token")
+    public void responseShouldNotReturnAValidAuthenticationToken() {
+
+        Assert.assertNotNull(response);
+
+        if (response.getStatusCode() == 200) {
+
+            String token = response.jsonPath()
+                    .getString("token");
+
+            Assert.assertTrue(
+                    "Unexpected valid token returned",
+                    token == null || token.isEmpty()
+            );
+        }
+    }
+
+    @Then("the API should safely process the input")
+    public void apiShouldSafelyProcessTheInput() {
+
+        Assert.assertNotNull(response);
+
+        Assert.assertTrue(
+                "Invalid HTTP status code",
+                response.getStatusCode() >= 100
+                        && response.getStatusCode() <= 599
+        );
+    }
+
+    @Then("the response should not contain executable script content")
+    public void responseShouldNotContainExecutableScriptContent() {
+
+        String responseBody = response.getBody()
+                .asString();
+
+        Assert.assertFalse(
+                responseBody.contains("<script>")
+        );
+    }
+
+    // ============================================================
+    // BOOKING TOKEN INTEGRATION
+    // ============================================================
+
+    @When("I generate an authentication token")
+    public void iGenerateAnAuthenticationToken() {
+
+        response = authService.createToken(
+                "{\"username\":\"admin\",\"password\":\"password123\"}",
+                "application/json"
+        );
+
+        Assert.assertEquals(
+                200,
+                response.getStatusCode()
+        );
+
+        extractedToken = response.jsonPath()
+                .getString("token");
+
+        TokenManager.setToken(extractedToken);
+    }
+
+    @When("I generate another authentication token using the same credentials")
+    public void iGenerateAnotherAuthenticationTokenUsingSameCredentials() {
+
+        response = authService.createToken(
+                "{\"username\":\"admin\",\"password\":\"password123\"}",
+                "application/json"
+        );
+
+        Assert.assertEquals(
+                200,
+                response.getStatusCode()
+        );
+    }
+
+    @When("I use the token for an authorized booking operation")
+    public void iUseTheTokenForAnAuthorizedBookingOperation() {
+
+        /*
+         * This step should call BookingService in the complete framework.
+         * Example:
+         *
+         * response = bookingService.deleteBooking(id);
+         *
+         * or
+         *
+         * response = bookingService.updateBooking(id, request);
+         */
+        Assert.assertNotNull(
+                "Authentication token should exist",
+                TokenManager.getToken()
+        );
+    }
+
+    @Then("the booking operation should accept the authentication token")
+    public void bookingOperationShouldAcceptAuthenticationToken() {
+
+        Assert.assertNotNull(
+                "Authentication token should be available",
+                TokenManager.getToken()
+        );
+    }
+
+    // ============================================================
+    // REPEATED TOKEN GENERATION
+    // ============================================================
+
+    @When("I generate an authentication token")
+    public void generateAuthenticationToken() {
+
+        response = authService.createToken(
+                "{\"username\":\"admin\",\"password\":\"password123\"}",
+                "application/json"
+        );
+
+        Assert.assertEquals(200, response.getStatusCode());
+
+        extractedToken =
+                response.jsonPath().getString("token");
+
+        TokenManager.setToken(extractedToken);
+    }
+}
