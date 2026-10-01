@@ -1,0 +1,509 @@
+Feature: Get a specific booking
+
+  As an API consumer
+  I want to retrieve a booking using its booking ID
+  So that I can view the booking details
+
+  @positive @smoke @GetBookingById01
+  Scenario: Get an existing booking using a valid booking ID
+    Given the Restful Booker API is available
+    And the booking ID "1" exists
+    When I send a GET request to "/booking/1"
+    Then the response status code should be 200
+    And the response Content-Type should be "application/json"
+    And the response should contain the booking details
+    And the response should contain "firstname"
+    And the response should contain "lastname"
+    And the response should contain "totalprice"
+    And the response should contain "depositpaid"
+    And the response should contain "bookingdates"
+    And the response should contain "additionalneeds"
+
+  @positive @GetBookingById02
+  Scenario: Get an existing booking with Accept application/json
+    Given the booking ID "1" exists
+    And the request header "Accept" is "application/json"
+    When I send a GET request to "/booking/1"
+    Then the response status code should be 200
+    And the response Content-Type should be "application/json"
+    And the response should contain valid JSON
+    And the response should contain the booking details
+
+  @positive @GetBookingById03
+  Scenario: Get an existing booking with Accept application/xml
+    Given the booking ID "1" exists
+    And the request header "Accept" is "application/xml"
+    When I send a GET request to "/booking/1"
+    Then the response status code should be 200
+    And the response Content-Type should be "application/xml"
+    And the response should contain the booking details in XML format
+
+  @positive @GetBookingById04
+  Scenario: Get booking without specifying Accept header
+    Given the booking ID "1" exists
+    When I send a GET request to "/booking/1"
+    Then the response status code should be 200
+    And the response should be returned in the default format
+    And the response should contain the booking details
+
+  @positive @GetBookingById05
+  Scenario: Get a booking using another valid booking ID
+    Given the booking ID "5" exists
+    When I send a GET request to "/booking/5"
+    Then the response status code should be 200
+    And the response should contain the booking details for booking ID "5"
+
+--------------------------------------------------------------------
+2. Response schema validation
+-----------------------------------------------------------------------
+  @positive @contract @GetBookingById06
+  Scenario: Validate the complete booking response schema
+    Given the booking ID "1" exists
+    When I send a GET request to "/booking/1"
+    Then the response status code should be 200
+    And the response should contain field "firstname"
+    And the response should contain field "lastname"
+    And the response should contain field "totalprice"
+    And the response should contain field "depositpaid"
+    And the response should contain field "bookingdates"
+    And the response should contain field "bookingdates.checkin"
+    And the response should contain field "bookingdates.checkout"
+    And the response should contain field "additionalneeds"
+
+  @positive @contract @GetBookingById07
+  Scenario: Validate booking field data types
+    Given the booking ID "1" exists
+    When I send a GET request to "/booking/1"
+    Then the response status code should be 200
+    And "firstname" should be a String
+    And "lastname" should be a String
+    And "totalprice" should be a Number
+    And "depositpaid" should be a Boolean
+    And "bookingdates" should be an Object
+    And "bookingdates.checkin" should be a Date
+    And "bookingdates.checkout" should be a Date
+    And "additionalneeds" should be a String
+
+  @positive @contract @GetBookingById08
+  Scenario: Validate booking dates object
+    Given the booking ID "1" exists
+    When I send a GET request to "/booking/1"
+    Then the response status code should be 200
+    And "bookingdates" should not be null
+    And "bookingdates.checkin" should not be null
+    And "bookingdates.checkout" should not be null
+
+  @positive @contract @GetBookingById09
+  Scenario: Validate booking response contains no unexpected top-level structure
+    Given the booking ID "1" exists
+    When I send a GET request to "/booking/1"
+    Then the response status code should be 200
+    And the response should conform to the Get Booking schema
+
+
+----------------------------------------------------------------------
+3. Booking ID positive boundary cases
+	The id parameter is defined as a String, so it is worth testing different valid representations.
+----------------------------------------------------------------------
+
+  @positive @boundary @GetBookingById10
+  Scenario: Get booking using the minimum valid booking ID
+    Given booking ID "1" exists
+    When I send a GET request to "/booking/1"
+    Then the response status code should be 200
+    And the response should contain the booking details
+
+  @positive @boundary @GetBookingById12
+  Scenario: Get booking using a multi-digit booking ID
+    Given booking ID "100" exists
+    When I send a GET request to "/booking/100"
+    Then the response status code should be 200
+    And the response should contain the booking details
+
+  @positive @boundary @GetBookingById12
+  Scenario: Get booking using a large existing booking ID
+    Given a large valid booking ID exists
+    When I send a GET request using that booking ID
+    Then the response status code should be 200
+    And the response should contain the corresponding booking details
+
+
+-------------------------------------------------------------------------
+4. Negative — non-existing booking
+--------------------------------------------------------------------------
+
+  @negative @smoke @GetBookingById13
+  Scenario: Get booking using a non-existing booking ID
+    Given booking ID "99999999" does not exist
+    When I send a GET request to "/booking/99999999"
+    Then the response status code should be 404
+    And the response should indicate that the booking was not found
+
+  @negative @GetBookingById14
+  Scenario: Get booking using another non-existing booking ID
+    Given booking ID "999999999" does not exist
+    When I send a GET request to "/booking/999999999"
+    Then the response status code should be 404
+
+  @negative @GetBookingById15
+  Scenario: Get booking using booking ID zero
+    Given booking ID "0" does not exist
+    When I send a GET request to "/booking/0"
+    Then the response status code should be 404
+
+  @negative @boundary @GetBookingById16
+  Scenario: Get booking using a negative booking ID
+    When I send a GET request to "/booking/-1"
+    Then the API should not return a successful booking response
+    And the response status code should be 404
+
+----------------------------------------------------------
+5. Missing booking ID
+----------------------------------------------------------
+  @negative @validation @GetBookingById17
+  Scenario: Get booking without providing booking ID
+    When I send a GET request to "/booking"
+    Then the response should not be a successful booking response
+    And the response status code should be 404
+
+
+  @negative @GetBookingById18
+  Scenario: Get booking with an empty booking ID
+    When I send a GET request to "/booking/"
+    Then the response should not be a successful booking response
+
+----------------------------------------------------------------
+6. Invalid booking ID formats
+Because id is documented as a String, some string values technically satisfy the type but may not identify a booking.
+-----------------------------------------------------------------
+  @negative @GetBookingById19
+  Scenario: Get booking using alphabetic booking ID
+    When I send a GET request to "/booking/abc"
+    Then the response should not contain booking details
+    And the response status code should be 404
+
+  @negative @GetBookingById20
+  Scenario: Get booking using alphanumeric booking ID
+    When I send a GET request to "/booking/abc123"
+    Then the response should not contain booking details
+    And the response status code should be 404
+
+  @negative @GetBookingById21
+  Scenario: Get booking using special character as booking ID
+    When I send a GET request to "/booking/@"
+    Then the response should not contain booking details
+
+  @negative @GetBookingById22
+  Scenario: Get booking using whitespace as booking ID
+    When I send a GET request to "/booking/%20"
+    Then the response should not contain booking details
+
+  @negative @GetBookingById23
+  Scenario: Get booking using decimal booking ID
+    When I send a GET request to "/booking/1.5"
+    Then the response should not contain booking details
+
+  @negative @GetBookingById24
+  Scenario: Get booking using boolean booking ID
+    When I send a GET request to "/booking/true"
+    Then the response should not contain booking details
+
+  @negative @GetBookingById25
+  Scenario: Get booking using null-like booking ID
+    When I send a GET request to "/booking/null"
+    Then the response should not contain booking details
+
+-----------------------------------------------------------
+7. Accept header positive scenarios
+---------------------------------------------------------
+
+  @positive @content-negotiation
+  Scenario: Request booking in JSON format
+    Given the booking ID "1" exists
+    And the request header "Accept" is "application/json"
+    When I send a GET request to "/booking/1"
+    Then the response status code should be 200
+    And the response Content-Type should contain "application/json"
+    And the response should be valid JSON
+
+  @positive @content-negotiation
+  Scenario: Request booking in XML format
+    Given the booking ID "1" exists
+    And the request header "Accept" is "application/xml"
+    When I send a GET request to "/booking/1"
+    Then the response status code should be 200
+    And the response Content-Type should contain "application/xml"
+    And the response should be valid XML
+
+  @positive @content-negotiation
+  Scenario: Get booking using default Accept behavior
+    Given the booking ID "1" exists
+    When I send a GET request to "/booking/1"
+    Then the response status code should be 200
+    And the response should use the documented default response format
+
+
+---------------------------------------------------------------------
+8. Invalid Accept header scenarios
+------------------------------------------------------------------
+  @negative @content-negotiation
+  Scenario: Get booking using unsupported Accept header
+    Given the booking ID "1" exists
+    And the request header "Accept" is "text/plain"
+    When I send a GET request to "/booking/1"
+    Then the API should handle the unsupported media type gracefully
+    And the response should not be an invalid or corrupted response
+
+  @negative @content-negotiation
+  Scenario: Get booking using invalid Accept header value
+    Given the booking ID "1" exists
+    And the request header "Accept" is "invalid"
+    When I send a GET request to "/booking/1"
+    Then the API should handle the invalid Accept header gracefully
+
+  @negative @content-negotiation
+  Scenario: Get booking using empty Accept header
+    Given the booking ID "1" exists
+    And the request header "Accept" is ""
+    When I send a GET request to "/booking/1"
+    Then the API should handle the request gracefully
+
+
+-----------------------------------------------------------------------
+9. Case sensitivity tests
+-------------------------------------------------------------------------
+
+  @positive @headers
+  Scenario: Get booking using lowercase accept header
+    Given the booking ID "1" exists
+    And the request header "accept" is "application/json"
+    When I send a GET request to "/booking/1"
+    Then the response status code should be 200
+    And the response should be valid JSON
+
+  @positive @headers
+  Scenario: Get booking using uppercase Accept header
+    Given the booking ID "1" exists
+    And the request header "ACCEPT" is "application/json"
+    When I send a GET request to "/booking/1"
+    Then the response status code should be 200
+    And the response should be valid JSON
+
+---------------------------------------------------
+10. HTTP method negative scenarios
+-----------------------------------------------------
+
+  @negative @method
+  Scenario: Attempt to retrieve booking using POST
+    When I send a POST request to "/booking/1"
+    Then the API should reject the request
+
+  @negative @method
+  Scenario: Attempt to retrieve booking using PUT
+    When I send a PUT request to "/booking/1"
+    Then the API should reject the request
+
+  @negative @method
+  Scenario: Attempt to retrieve booking using PATCH
+    When I send a PATCH request to "/booking/1"
+    Then the API should reject the request
+
+  @negative @method
+  Scenario: Attempt to retrieve booking using DELETE
+    When I send a DELETE request to "/booking/1"
+    Then the API should reject the request
+
+---------------------------------------------------------
+11. Request body negative scenarios
+-----------------------------------------------------------
+  @negative
+  Scenario: Get booking with an unexpected request body
+    Given the booking ID "1" exists
+    When I send a GET request to "/booking/1" with an unexpected JSON body
+    Then the API should handle the request gracefully
+    And the response should contain the requested booking details or reject the invalid request
+
+---------------------------------------------------------------
+12. Extra request headers
+---------------------------------------------------------------
+
+  @positive
+  Scenario: Get booking with additional request headers
+    Given the booking ID "1" exists
+    And the request contains additional valid HTTP headers
+    When I send a GET request to "/booking/1"
+    Then the response status code should be 200
+    And the response should contain the booking details
+
+---------------------------------------------------------------
+13. Response field validation
+-----------------------------------------------------------------
+{
+  "firstname": "Jim",
+  "lastname": "Brown",
+  "totalprice": 111,
+  "depositpaid": true,
+  "bookingdates": {
+    "checkin": "2018-01-01",
+    "checkout": "2019-01-01"
+  },
+  "additionalneeds": "Breakfast"
+}
+
+  @positive @contract
+  Scenario: Validate firstname in booking response
+    Given the booking ID "1" exists
+    When I send a GET request to "/booking/1"
+    Then the response status code should be 200
+    And "firstname" should be present
+    And "firstname" should be a String
+
+  @positive @contract
+  Scenario: Validate lastname in booking response
+    Given the booking ID "1" exists
+    When I send a GET request to "/booking/1"
+    Then the response status code should be 200
+    And "lastname" should be present
+    And "lastname" should be a String
+
+  @positive @contract
+  Scenario: Validate totalprice in booking response
+    Given the booking ID "1" exists
+    When I send a GET request to "/booking/1"
+    Then the response status code should be 200
+    And "totalprice" should be present
+    And "totalprice" should be a Number
+
+  @positive @contract
+  Scenario: Validate depositpaid in booking response
+    Given the booking ID "1" exists
+    When I send a GET request to "/booking/1"
+    Then the response status code should be 200
+    And "depositpaid" should be present
+    And "depositpaid" should be a Boolean
+
+  @positive @contract
+  Scenario: Validate additionalneeds in booking response
+    Given the booking ID "1" exists
+    When I send a GET request to "/booking/1"
+    Then the response status code should be 200
+    And "additionalneeds" should be present
+    And "additionalneeds" should be a String
+
+
+-----------------------------------------------------------
+14. Booking date validation
+------------------------------------------------------------
+
+  @positive @contract
+  Scenario: Validate checkin date format
+    Given the booking ID "1" exists
+    When I send a GET request to "/booking/1"
+    Then the response status code should be 200
+    And "bookingdates.checkin" should contain a valid date
+
+  @positive @contract
+  Scenario: Validate checkout date format
+    Given the booking ID "1" exists
+    When I send a GET request to "/booking/1"
+    Then the response status code should be 200
+    And "bookingdates.checkout" should contain a valid date
+
+  @positive @business
+  Scenario: Validate checkout date is not before checkin date
+    Given the booking ID "1" exists
+    When I send a GET request to "/booking/1"
+    Then the response status code should be 200
+    And the checkout date should not be before the checkin date
+
+-------------------------------------------------
+15. Response consistency
+-----------------------------------------------------
+
+  @positive @consistency
+  Scenario: Retrieve the same booking multiple times
+    Given the booking ID "1" exists
+    When I send a GET request to "/booking/1" three times
+    Then all responses should have status code 200
+    And the booking ID should remain the same
+    And the booking details should remain consistent
+
+  @positive @consistency
+  Scenario: Retrieve two different booking IDs
+    Given booking ID "1" exists
+    And booking ID "2" exists
+    When I send a GET request to "/booking/1"
+    And I send a GET request to "/booking/2"
+    Then both responses should have status code 200
+    And the returned booking details should correspond to their respective IDs
+
+----------------------------------------------------------------------------------
+16. Large/edge-case ID tests
+
+---------------------------------------------------------------
+  @negative @boundary
+  Scenario: Get booking using extremely large numeric ID
+    When I send a GET request to "/booking/999999999999999999999999"
+    Then the API should handle the request gracefully
+    And it should not return an invalid successful booking
+
+  @negative @boundary
+  Scenario: Get booking using extremely long string ID
+    When I send a GET request using an extremely long booking ID
+    Then the API should handle the request gracefully
+    And it should not return a server error
+
+  @negative @boundary
+  Scenario: Get booking using encoded special characters
+    When I send a GET request to "/booking/%40%23%24"
+    Then the API should handle the request gracefully
+    And it should not return an unexpected successful booking
+
+----------------------------------------------------------------
+17. Security/robustness scenarios
+
+For an API exposed through a URL parameter, these are worth adding, although they are not explicitly defined by your contract.
+-------------------------------------------------------
+
+  @negative @security
+  Scenario: Get booking using SQL injection-like booking ID
+    When I send a GET request to "/booking/1%27%20OR%201%3D1"
+    Then the API should handle the request safely
+    And it should not return unauthorized booking data
+    And it should not return a server error
+
+  @negative @security
+  Scenario: Get booking using script-like booking ID
+    When I send a GET request to "/booking/%3Cscript%3Ealert(1)%3C%2Fscript%3E"
+    Then the API should handle the request safely
+    And it should not execute the supplied script
+    And it should not return a server error
+
+  @negative @security
+  Scenario: Get booking using path traversal-like booking ID
+    When I send a GET request to "/booking/../admin"
+    Then the API should reject the invalid request
+    And it should not expose unauthorized information
+
+---------------------------------------------------------
+18. Availability/server error handling
+
+These are useful for production-quality API automation but shouldn't be confused with contract-functional tests.
+----------------------------------
+
+
+  @negative @resilience
+  Scenario: Get booking when the API server is unavailable
+    Given the Restful Booker API is unavailable
+    When I send a GET request to "/booking/1"
+    Then the client should handle the connection failure gracefully
+
+  @negative @resilience
+  Scenario: Get booking when the API request times out
+    Given the API request exceeds the configured timeout
+    When I send a GET request to "/booking/1"
+    Then the client should report a timeout
+    And the test should not hang indefinitely
+
+
+

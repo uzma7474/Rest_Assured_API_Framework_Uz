@@ -1,0 +1,922 @@
+Feature: Create Booking API
+
+  Background:
+    Given the booking API endpoint is "/booking"
+
+
+  @positive @smoke @CreateBooking01
+  Scenario: Create booking with all valid fields
+    Given the request Content-Type is "application/json"
+    And the request contains valid booking details
+    When the user sends a POST request to create booking
+    Then the response status code should be 200
+    And the response Content-Type should be "application/json"
+    And the response should contain a numeric "bookingid"
+    And the response should contain "booking" object
+    And the booking firstname should match the request
+    And the booking lastname should match the request
+    And the booking totalprice should match the request
+    And the booking depositpaid should match the request
+    And the booking checkin should match the request
+    And the booking checkout should match the request
+    And the booking additionalneeds should match the request
+
+
+  @positive @CreateBooking02
+  Scenario: Create booking without explicitly specifying Accept header
+    Given the request Content-Type is "application/json"
+    And the Accept header is not specified
+    And the request contains valid booking details
+    When the user sends a POST request to create booking
+    Then the response status code should be 200
+    And the response Content-Type should be "application/json"
+
+
+  @positive @CreateBooking03
+  Scenario: Create booking with Accept application/json
+    Given the request Content-Type is "application/json"
+    And the Accept header is "application/json"
+    And the request contains valid booking details
+    When the user sends a POST request to create booking
+    Then the response status code should be 200
+    And the response should be returned in JSON format
+
+
+  @positive @CreateBooking04
+  Scenario: Create booking with Accept application/xml
+    Given the request Content-Type is "application/json"
+    And the Accept header is "application/xml"
+    And the request contains valid booking details
+    When the user sends a POST request to create booking
+    Then the response status code should be 200
+    And the response should be returned in XML format
+
+
+  @positive @CreateBooking05
+  Scenario: Create booking with deposit paid as true
+    Given the request contains a valid booking
+    And the depositpaid value is true
+    When the user sends a POST request to create booking
+    Then the response status code should be 200
+    And the response depositpaid should be true
+
+
+  @positive @CreateBooking06
+  Scenario: Create booking with deposit paid as false
+    Given the request contains a valid booking
+    And the depositpaid value is false
+    When the user sends a POST request to create booking
+    Then the response status code should be 200
+    And the response depositpaid should be false
+
+
+  @positive @CreateBooking07
+  Scenario: Create booking with additional needs
+    Given the request contains valid booking details
+    And the additionalneeds is "Breakfast"
+    When the user sends a POST request to create booking
+    Then the response status code should be 200
+    And the response additionalneeds should be "Breakfast"
+
+
+  @positive @CreateBooking08
+  Scenario: Create booking without additionalneeds
+    Given the request contains valid booking details
+    And the additionalneeds field is not provided
+    When the user sends a POST request to create booking
+    Then the response status code should be 200
+    And the booking should be created successfully
+
+
+  @positive @CreateBooking09
+  Scenario: Create booking with different valid firstname
+    Given the request contains a valid firstname "John"
+    And the remaining booking details are valid
+    When the user sends a POST request to create booking
+    Then the response status code should be 200
+    And the response firstname should be "John"
+
+
+  @positive @CreateBooking10
+  Scenario: Create booking with different valid lastname
+    Given the request contains a valid lastname "Smith"
+    And the remaining booking details are valid
+    When the user sends a POST request to create booking
+    Then the response status code should be 200
+    And the response lastname should be "Smith"
+
+
+  @positive @CreateBooking11
+  Scenario: Create booking with zero total price
+    Given the request contains totalprice as 0
+    And all other booking details are valid
+    When the user sends a POST request to create booking
+    Then the response status code should be 200
+    And the booking should be created successfully
+
+
+  @positive @CreateBooking12
+  Scenario: Create booking with a large valid total price
+    Given the request contains a large numeric totalprice
+    And all other booking details are valid
+    When the user sends a POST request to create booking
+    Then the response status code should be 200
+    And the booking should be created successfully
+
+
+  @positive @CreateBooking13
+  Scenario: Create booking with valid checkin and checkout dates
+    Given the checkin date is "2026-09-01"
+    And the checkout date is "2026-09-10"
+    And all other booking details are valid
+    When the user sends a POST request to create booking
+    Then the response status code should be 200
+    And the response should contain the requested dates
+
+
+  @positive @CreateBooking14
+  Scenario: Create booking with same checkin and checkout date
+    Given the checkin and checkout dates are the same valid date
+    And all other booking details are valid
+    When the user sends a POST request to create booking
+    Then the API should process the request according to its business rules
+    
+#===============================================================================================
+# 2. Required Field Negative Tests
+#===============================================================================================
+  @negative @CreateBooking15
+  Scenario: Create booking without firstname
+    Given the request does not contain firstname
+    And all other booking details are valid
+    When the user sends a POST request to create booking
+    Then the API should reject the request or process it according to its validation rules
+
+
+  @negative @CreateBooking16
+  Scenario: Create booking without lastname
+    Given the request does not contain lastname
+    And all other booking details are valid
+    When the user sends a POST request to create booking
+    Then the API should reject the request or process it according to its validation rules
+
+
+  @negative @CreateBooking17
+  Scenario: Create booking without totalprice
+    Given the request does not contain totalprice
+    And all other booking details are valid
+    When the user sends a POST request to create booking
+    Then the API should reject the request or process it according to its validation rules
+
+
+  @negative @CreateBooking18
+  Scenario: Create booking without depositpaid
+    Given the request does not contain depositpaid
+    And all other booking details are valid
+    When the user sends a POST request to create booking
+    Then the API should reject the request or process it according to its validation rules
+
+
+  @negative @CreateBooking19
+  Scenario: Create booking without bookingdates
+    Given the request does not contain bookingdates
+    And all other booking details are valid
+    When the user sends a POST request to create booking
+    Then the API should reject the request or process it according to its validation rules
+
+
+  @negative @CreateBooking20
+  Scenario: Create booking without checkin
+    Given the bookingdates object does not contain checkin
+    And all other booking details are valid
+    When the user sends a POST request to create booking
+    Then the API should reject the request or process it according to its validation rules
+
+
+  @negative @CreateBooking21
+  Scenario: Create booking without checkout
+    Given the bookingdates object does not contain checkout
+    And all other booking details are valid
+    When the user sends a POST request to create booking
+    Then the API should reject the request or process it according to its validation rules
+    
+    
+#==========================================================================================
+# 3. Null and Empty Value Tests
+#========================================================================================== 
+
+  @negative @CreateBooking22
+  Scenario: Create booking with firstname as null
+    Given firstname is null
+    And all other fields contain valid values
+    When the user sends a POST request to create booking
+    Then the API should handle the null firstname according to its validation rules
+
+
+  @negative @CreateBooking23
+  Scenario: Create booking with lastname as null
+    Given lastname is null
+    And all other fields contain valid values
+    When the user sends a POST request to create booking
+    Then the API should handle the null lastname according to its validation rules
+
+
+  @negative @CreateBooking24
+  Scenario: Create booking with totalprice as null
+    Given totalprice is null
+    And all other fields contain valid values
+    When the user sends a POST request to create booking
+    Then the API should handle the null totalprice according to its validation rules
+
+
+  @negative @CreateBooking25
+  Scenario: Create booking with depositpaid as null
+    Given depositpaid is null
+    And all other fields contain valid values
+    When the user sends a POST request to create booking
+    Then the API should handle the null depositpaid according to its validation rules
+
+
+  @negative @CreateBooking26
+  Scenario: Create booking with bookingdates as null
+    Given bookingdates is null
+    And all other fields contain valid values
+    When the user sends a POST request to create booking
+    Then the API should handle the null bookingdates according to its validation rules
+
+
+  @negative @CreateBooking27
+  Scenario: Create booking with empty firstname
+    Given firstname is an empty string
+    And all other fields are valid
+    When the user sends a POST request to create booking
+    Then the API should handle the empty firstname according to its validation rules
+
+
+  @negative @CreateBooking28
+  Scenario: Create booking with empty lastname
+    Given lastname is an empty string
+    And all other fields are valid
+    When the user sends a POST request to create booking
+    Then the API should handle the empty lastname according to its validation rules
+
+
+  @negative @CreateBooking29
+  Scenario: Create booking with empty additionalneeds
+    Given additionalneeds is an empty string
+    And all other fields are valid
+    When the user sends a POST request to create booking
+    Then the booking should be handled according to the API contract   
+    
+#==========================================================================================
+# 4. Data-Type Validation Tests
+#==========================================================================================   
+
+  @negative @contract @CreateBooking30
+  Scenario: Create booking with numeric firstname
+    Given firstname is provided as a number
+    And all other fields are valid
+    When the user sends a POST request to create booking
+    Then the API should reject or handle the invalid firstname type
+
+
+  @negative @contract @CreateBooking31
+  Scenario: Create booking with numeric lastname
+    Given lastname is provided as a number
+    And all other fields are valid
+    When the user sends a POST request to create booking
+    Then the API should reject or handle the invalid lastname type
+
+
+  @negative @contract @CreateBooking32
+  Scenario: Create booking with string totalprice
+    Given totalprice is provided as a string
+    And all other fields are valid
+    When the user sends a POST request to create booking
+    Then the API should reject or handle the invalid totalprice type
+
+
+  @negative @contract @CreateBooking33
+  Scenario: Create booking with boolean totalprice
+    Given totalprice is provided as a boolean
+    And all other fields are valid
+    When the user sends a POST request to create booking
+    Then the API should reject or handle the invalid totalprice type
+
+
+  @negative @contract @CreateBooking34
+  Scenario: Create booking with string depositpaid
+    Given depositpaid is provided as a string
+    And all other fields are valid
+    When the user sends a POST request to create booking
+    Then the API should reject or handle the invalid depositpaid type
+
+
+  @negative @contract @CreateBooking35
+  Scenario: Create booking with numeric depositpaid
+    Given depositpaid is provided as a number
+    And all other fields are valid
+    When the user sends a POST request to create booking
+    Then the API should reject or handle the invalid depositpaid type
+
+
+  @negative @contract @CreateBooking36
+  Scenario: Create booking with string bookingdates
+    Given bookingdates is provided as a string
+    And all other fields are valid
+    When the user sends a POST request to create booking
+    Then the API should reject or handle the invalid bookingdates type
+
+
+  @negative @contract @CreateBooking37
+  Scenario: Create booking with array bookingdates
+    Given bookingdates is provided as an array
+    And all other fields are valid
+    When the user sends a POST request to create booking
+    Then the API should reject or handle the invalid bookingdates type
+
+
+  @negative @contract @CreateBooking38
+  Scenario: Create booking with numeric checkin
+    Given checkin is provided as a number
+    And checkout is valid
+    When the user sends a POST request to create booking
+    Then the API should reject or handle the invalid checkin type
+
+
+  @negative @contract @CreateBooking39
+  Scenario: Create booking with numeric checkout
+    Given checkout is provided as a number
+    And checkin is valid
+    When the user sends a POST request to create booking
+    Then the API should reject or handle the invalid checkout type
+
+
+  @negative @contract @CreateBooking40
+  Scenario: Create booking with numeric additionalneeds
+    Given additionalneeds is provided as a number
+    And all other fields are valid
+    When the user sends a POST request to create booking
+    Then the API should reject or handle the invalid additionalneeds type  
+    
+    
+#==========================================================================================
+# 5. Date Validation Tests
+#==========================================================================================  
+
+  @negative @CreateBooking41
+  Scenario: Create booking with invalid checkin date format
+    Given checkin is "01-01-2026"
+    And checkout is "2026-01-10"
+    When the user sends a POST request to create booking
+    Then the API should reject or handle the invalid date format
+
+
+  @negative @CreateBooking42
+  Scenario: Create booking with invalid checkout date format
+    Given checkin is "2026-01-01"
+    And checkout is "10-01-2026"
+    When the user sends a POST request to create booking
+    Then the API should reject or handle the invalid date format
+
+
+  @negative @CreateBooking43
+  Scenario: Create booking with alphabetic checkin date
+    Given checkin is "abcdefgh"
+    And checkout is "2026-01-10"
+    When the user sends a POST request to create booking
+    Then the API should reject or handle the invalid date
+
+
+  @negative @CreateBooking44
+  Scenario: Create booking with alphabetic checkout date
+    Given checkin is "2026-01-01"
+    And checkout is "abcdefgh"
+    When the user sends a POST request to create booking
+    Then the API should reject or handle the invalid date
+
+
+  @negative @CreateBooking45
+  Scenario: Create booking with impossible checkin date
+    Given checkin is "2026-02-30"
+    And checkout is "2026-03-10"
+    When the user sends a POST request to create booking
+    Then the API should reject or handle the invalid date
+
+
+  @negative @CreateBooking46
+  Scenario: Create booking with impossible checkout date
+    Given checkin is "2026-02-01"
+    And checkout is "2026-02-30"
+    When the user sends a POST request to create booking
+    Then the API should reject or handle the invalid date
+
+
+  @negative @CreateBooking47
+  Scenario: Create booking with checkout before checkin
+    Given checkin is "2026-10-10"
+    And checkout is "2026-10-01"
+    When the user sends a POST request to create booking
+    Then the API should reject or handle the invalid date range
+
+
+  @positive @CreateBooking48
+  Scenario: Create booking with checkin before checkout
+    Given checkin is "2026-10-01"
+    And checkout is "2026-10-10"
+    When the user sends a POST request to create booking
+    Then the response status code should be 200
+  
+  
+#==========================================================================================
+# 6. Header Validation Tests
+#==========================================================================================   
+
+  @positive @header @CreateBooking49
+  Scenario: Create booking using application/json Content-Type
+    Given Content-Type is "application/json"
+    And the request body is valid JSON
+    When the user sends a POST request
+    Then the response status code should be 200
+
+
+  @positive @header @CreateBooking50
+  Scenario: Create booking using text/xml Content-Type
+    Given Content-Type is "text/xml"
+    And the request body is valid XML
+    When the user sends a POST request
+    Then the API should process the XML request according to the API contract
+
+
+  @negative @header @CreateBooking51
+  Scenario: Create booking with unsupported Content-Type
+    Given Content-Type is "text/plain"
+    And the request body contains booking data
+    When the user sends a POST request
+    Then the API should reject the unsupported Content-Type
+
+
+  @negative @header @CreateBooking52
+  Scenario: Create booking with invalid Content-Type
+    Given Content-Type is "invalid/content"
+    When the user sends a POST request
+    Then the API should reject the request
+
+
+  @positive @header @CreateBooking53
+  Scenario: Create booking with Accept application/json
+    Given Content-Type is "application/json"
+    And Accept is "application/json"
+    And the request body is valid
+    When the user sends a POST request
+    Then the response status code should be 200
+    And the response should be JSON
+
+
+  @positive @header @CreateBooking54
+  Scenario: Create booking with Accept application/xml
+    Given Content-Type is "application/json"
+    And Accept is "application/xml"
+    And the request body is valid
+    When the user sends a POST request
+    Then the response status code should be 200
+    And the response should be XML
+
+
+  @negative @header @CreateBooking55
+  Scenario: Create booking with unsupported Accept header
+    Given Content-Type is "application/json"
+    And Accept is "text/plain"
+    And the request body is valid
+    When the user sends a POST request
+    Then the API should reject or handle the unsupported Accept format 
+    
+#==========================================================================================
+# 7. Malformed JSON Tests
+#========================================================================================== 
+
+  @negative @CreateBooking56
+  Scenario: Create booking with malformed JSON
+    Given the request body contains malformed JSON
+    And Content-Type is "application/json"
+    When the user sends a POST request
+    Then the API should reject the request
+
+
+  @negative @CreateBooking57
+  Scenario: Create booking with empty JSON object
+    Given the request body is "{}"
+    And Content-Type is "application/json"
+    When the user sends a POST request
+    Then the API should reject or handle the empty request according to its validation rules
+
+
+  @negative @CreateBooking58
+  Scenario: Create booking with empty request body
+    Given the request body is empty
+    And Content-Type is "application/json"
+    When the user sends a POST request
+    Then the API should reject the request
+
+
+  @negative @CreateBooking59
+  Scenario: Create booking with JSON array instead of object
+    Given the request body is a JSON array
+    And Content-Type is "application/json"
+    When the user sends a POST request
+    Then the API should reject the request
+
+
+  @negative @CreateBooking60
+  Scenario: Create booking with plain text request body
+    Given the request body contains plain text
+    And Content-Type is "application/json"
+    When the user sends a POST request
+    Then the API should reject the request   
+    
+#==========================================================================================
+# 8. Extra / Unknown Fields
+#==========================================================================================   
+
+  @positive @CreateBooking61
+  Scenario: Create booking with an additional unknown field
+    Given the request contains all valid booking fields
+    And the request contains an additional unknown field "testfield"
+    When the user sends a POST request to create booking
+    Then the API should process the request according to its contract
+
+
+  @negative @CreateBooking62
+  Scenario: Create booking with incorrect field name
+    Given the request contains "firstName" instead of "firstname"
+    And all other fields are valid
+    When the user sends a POST request
+    Then the API should handle the incorrect field name according to its validation rules
+
+
+  @negative @CreateBooking63
+  Scenario: Create booking with incorrect bookingdates field name
+    Given the request contains "bookingDate" instead of "bookingdates"
+    And all other fields are valid
+    When the user sends a POST request
+    Then the API should handle the incorrect field name according to its validation rules  
+    
+#==========================================================================================
+# 9. Boundary and Special Character Tests
+#==========================================================================================    
+
+  @positive @boundary @CreateBooking64
+  Scenario: Create booking with single character firstname
+    Given firstname is "A"
+    And all other booking details are valid
+    When the user sends a POST request
+    Then the booking should be created successfully
+
+
+  @positive @boundary @CreateBooking65
+  Scenario: Create booking with single character lastname
+    Given lastname is "B"
+    And all other booking details are valid
+    When the user sends a POST request
+    Then the booking should be created successfully
+
+
+  @positive @special @CreateBooking66
+  Scenario: Create booking with spaces in firstname
+    Given firstname is "Mary Jane"
+    And all other booking details are valid
+    When the user sends a POST request
+    Then the API should handle the firstname according to its validation rules
+
+
+  @positive @special @CreateBooking67
+  Scenario: Create booking with special characters in firstname
+    Given firstname is "John-O'Connor"
+    And all other booking details are valid
+    When the user sends a POST request
+    Then the API should handle the firstname according to its validation rules
+
+
+  @positive @special @CreateBooking68
+  Scenario: Create booking with special characters in lastname
+    Given lastname is "Smith-Jones"
+    And all other booking details are valid
+    When the user sends a POST request
+    Then the API should handle the lastname according to its validation rules
+
+
+  @positive @unicode @CreateBooking69
+  Scenario: Create booking with Unicode characters
+    Given firstname contains Unicode characters
+    And lastname contains Unicode characters
+    And all other booking details are valid
+    When the user sends a POST request
+    Then the API should handle the Unicode data correctly 
+    
+    
+#==========================================================================================
+# 10. Total Price Boundary Tests
+#==========================================================================================  
+
+  @positive @boundary @CreateBooking70
+  Scenario: Create booking with totalprice as zero
+    Given totalprice is 0
+    And all other fields are valid
+    When the user sends a POST request
+    Then the booking should be created according to the API rules
+
+
+  @positive @boundary @CreateBooking71
+  Scenario: Create booking with positive integer totalprice
+    Given totalprice is 1
+    And all other fields are valid
+    When the user sends a POST request
+    Then the booking should be created successfully
+
+
+  @positive @boundary @CreateBooking72
+  Scenario: Create booking with decimal totalprice
+    Given totalprice is 111.50
+    And all other fields are valid
+    When the user sends a POST request
+    Then the API should process the numeric value according to the contract
+
+
+  @negative @boundary @CreateBooking73
+  Scenario: Create booking with negative totalprice
+    Given totalprice is -100
+    And all other fields are valid
+    When the user sends a POST request
+    Then the API should handle the negative price according to its business rules
+
+
+  @negative @boundary @CreateBooking74
+  Scenario: Create booking with extremely large totalprice
+    Given totalprice contains an extremely large numeric value
+    And all other fields are valid
+    When the user sends a POST request
+    Then the API should handle the value without unexpected errors  
+      
+#==========================================================================================
+# 11. Response Contract Validation
+#==========================================================================================      
+
+  @positive @contract @CreateBooking75
+  Scenario: Validate bookingid exists in successful response
+    Given a valid booking request is submitted
+    When the booking is created
+    Then the response status code should be 200
+    And bookingid should exist
+    And bookingid should be a number
+
+
+  @positive @contract @CreateBooking76
+  Scenario: Validate booking object exists in successful response
+    Given a valid booking request is submitted
+    When the booking is created
+    Then the response should contain booking object
+
+
+  @positive @contract @CreateBooking77
+  Scenario: Validate firstname data type in response
+    Given a valid booking request is submitted
+    When the booking is created
+    Then booking.firstname should be a string
+
+
+  @positive @contract @CreateBooking78
+  Scenario: Validate lastname data type in response
+    Given a valid booking request is submitted
+    When the booking is created
+    Then booking.lastname should be a string
+
+
+  @positive @contract @CreateBooking79
+  Scenario: Validate totalprice data type in response
+    Given a valid booking request is submitted
+    When the booking is created
+    Then booking.totalprice should be a number
+
+
+  @positive @contract @CreateBooking80
+  Scenario: Validate depositpaid data type in response
+    Given a valid booking request is submitted
+    When the booking is created
+    Then booking.depositpaid should be a boolean
+
+
+  @positive @contract @CreateBooking81
+  Scenario: Validate bookingdates data type in response
+    Given a valid booking request is submitted
+    When the booking is created
+    Then bookingdates should be an object
+
+
+  @positive @contract @CreateBooking82
+  Scenario: Validate checkin data type in response
+    Given a valid booking request is submitted
+    When the booking is created
+    Then booking.checkin should be a date string
+
+
+  @positive @contract @CreateBooking83
+  Scenario: Validate checkout data type in response
+    Given a valid booking request is submitted
+    When the booking is created
+    Then booking.checkout should be a date string
+
+
+  @positive @contract @CreateBooking84
+  Scenario: Validate additionalneeds data type in response
+    Given a valid booking request is submitted
+    When the booking is created
+    Then booking.additionalneeds should be a string
+    
+#==========================================================================================
+# 12. Request vs Response Validation
+#==========================================================================================    
+
+  @positive @validation @CreateBooking85
+  Scenario: Verify firstname in response matches request
+    Given firstname is "Jim"
+    And all other fields are valid
+    When the user creates a booking
+    Then response booking.firstname should be "Jim"
+
+
+  @positive @validation @CreateBooking86
+  Scenario: Verify lastname in response matches request
+    Given lastname is "Brown"
+    And all other fields are valid
+    When the user creates a booking
+    Then response booking.lastname should be "Brown"
+
+
+  @positive @validation @CreateBooking87
+  Scenario: Verify totalprice in response matches request
+    Given totalprice is 111
+    And all other fields are valid
+    When the user creates a booking
+    Then response booking.totalprice should be 111
+
+
+  @positive @validation @CreateBooking88
+  Scenario: Verify depositpaid in response matches request
+    Given depositpaid is true
+    And all other fields are valid
+    When the user creates a booking
+    Then response booking.depositpaid should be true
+
+
+  @positive @validation @CreateBooking89
+  Scenario: Verify checkin in response matches request
+    Given checkin is "2026-09-01"
+    And all other fields are valid
+    When the user creates a booking
+    Then response bookingdates.checkin should be "2026-09-01"
+
+
+  @positive @validation @CreateBooking90
+  Scenario: Verify checkout in response matches request
+    Given checkout is "2026-09-10"
+    And all other fields are valid
+    When the user creates a booking
+    Then response bookingdates.checkout should be "2026-09-10"
+
+
+  @positive @validation @CreateBooking91
+  Scenario: Verify additionalneeds in response matches request
+    Given additionalneeds is "Breakfast"
+    And all other fields are valid
+    When the user creates a booking
+    Then response booking.additionalneeds should be "Breakfast"   
+    
+    
+#==========================================================================================
+# 13. Response Status and Header Tests
+#==========================================================================================   
+
+  @positive @response @CreateBooking92
+  Scenario: Verify successful response status code
+    Given a valid booking request
+    When the user sends POST request to "/booking"
+    Then the response status code should be 200
+
+
+  @positive @response @CreateBooking93
+  Scenario: Verify JSON response Content-Type
+    Given Content-Type is "application/json"
+    And Accept is "application/json"
+    And the request is valid
+    When the user creates a booking
+    Then the response Content-Type should be "application/json"
+
+
+  @positive @response @CreateBooking94
+  Scenario: Verify XML response Content-Type
+    Given Content-Type is "application/json"
+    And Accept is "application/xml"
+    And the request is valid
+    When the user creates a booking
+    Then the response Content-Type should be XML
+
+
+  @positive @response @CreateBooking95
+  Scenario: Verify booking ID is unique for multiple bookings
+    Given the user creates two valid bookings
+    When both booking requests are successful
+    Then both responses should contain booking IDs
+    And the booking IDs should be different    
+    
+#==========================================================================================
+# 14. HTTP Method Tests
+#==========================================================================================  
+
+  @negative @method @CreateBooking96
+  Scenario: Create booking using GET method
+    Given valid booking data
+    When the user sends a GET request to "/booking"
+    Then the API should not create a booking
+
+
+  @negative @method @CreateBooking97
+  Scenario: Create booking using PUT method
+    Given valid booking data
+    When the user sends a PUT request to "/booking"
+    Then the API should not create a booking
+
+
+  @negative @method @CreateBooking98
+  Scenario: Create booking using DELETE method
+    Given valid booking data
+    When the user sends a DELETE request to "/booking"
+    Then the API should not create a booking
+
+
+  @negative @method @CreateBooking99
+  Scenario: Create booking using PATCH method
+    Given valid booking data
+    When the user sends a PATCH request to "/booking"
+    Then the API should not create a booking   
+    
+#==========================================================================================
+# 15. Security / Robustness Tests
+#==========================================================================================  
+
+  @negative @security @CreateBooking100
+  Scenario: Create booking with SQL injection in firstname
+    Given firstname contains a SQL injection payload
+    And all other fields are valid
+    When the user sends a POST request
+    Then the API should not execute the injected SQL
+
+
+  @negative @security @CreateBooking101
+  Scenario: Create booking with script injection in firstname
+    Given firstname contains a script payload
+    And all other fields are valid
+    When the user sends a POST request
+    Then the API should safely handle the input
+
+
+  @negative @security @CreateBooking102
+  Scenario: Create booking with script injection in additionalneeds
+    Given additionalneeds contains a script payload
+    And all other fields are valid
+    When the user sends a POST request
+    Then the API should safely handle the input
+
+
+  @negative @security @CreateBooking103
+  Scenario: Create booking with extremely long firstname
+    Given firstname contains an extremely long string
+    And all other fields are valid
+    When the user sends a POST request
+    Then the API should handle the request without unexpected server errors
+
+
+  @negative @security @CreateBooking104
+  Scenario: Create booking with extremely large request payload
+    Given the request contains an excessively large payload
+    When the user sends a POST request
+    Then the API should handle the request gracefully
+    
+#==============================================================================================
+# 16. End-to-End Create → Retrieve Validation
+#==============================================================================================
+
+  @positive @e2e @CreateBooking105
+  Scenario: Create booking and retrieve the created booking
+    Given the user has valid booking details
+    When the user sends a POST request to "/booking"
+    Then the response status code should be 200
+    And the response should contain bookingid
+    When the user sends a GET request using the returned bookingid
+    Then the response status code should be 200
+    And the firstname should match the created booking
+    And the lastname should match the created booking
+    And the totalprice should match the created booking
+    And the depositpaid should match the created booking
+    And the checkin should match the created booking
+    And the checkout should match the created booking
+    And the additionalneeds should match the created booking
+  

@@ -2,7 +2,11 @@ package base;
 
 import static io.restassured.RestAssured.given;
 
+import config.ConfigManager;
 import io.restassured.RestAssured;
+import io.restassured.builder.RequestSpecBuilder;
+import io.restassured.config.HttpClientConfig;
+import io.restassured.config.RestAssuredConfig;
 import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
 import io.restassured.specification.ResponseSpecification;
@@ -89,6 +93,57 @@ public class BookingBaseApi {
 
 		RestAssured.reset();
 	}
+	
+	
+	protected RequestSpecification requestSpecForGetBookingIds() {
+		String baseUrl = ConfigManager.getProperty("booking.baseUrl");
+		
+		System.out.println("Base Url : "+baseUrl);
+		
+		int requestTimeout = ConfigManager.getIntProperty("request.timeout", 30000);
+
+		int connectionTimeout = ConfigManager.getIntProperty("connection.timeout", 30000);
+
+		int socketTimeout = ConfigManager.getIntProperty("socket.timeout", 30000);
+		
+		RequestSpecBuilder builder = new RequestSpecBuilder();
+		builder
+			.setBaseUri(baseUrl)
+			.setContentType(ContentType.JSON)
+			.setAccept(ContentType.JSON)
+			.setConfig(RestAssuredConfig.config()
+					.httpClient(HttpClientConfig.httpClientConfig()
+						.setParam("http.connection.timeout", connectionTimeout)
+						.setParam("http.socket.timeout", socketTimeout)
+						.setParam("http.connection-manager.timeout", requestTimeout)));
+		
+		return builder.build();
+	}
+	
+	protected RequestSpecification requestSpecForCreateBooking() {
+		String baseUrl = ConfigManager.getProperty("booking.baseUrl");
+		
+		System.out.println("Base Url : "+baseUrl);
+		
+		int requestTimeout = ConfigManager.getIntProperty("request.timeout", 30000);
+
+		int connectionTimeout = ConfigManager.getIntProperty("connection.timeout", 30000);
+
+		int socketTimeout = ConfigManager.getIntProperty("socket.timeout", 30000);
+		
+		RequestSpecBuilder builder = new RequestSpecBuilder();
+		builder
+			.setBaseUri(baseUrl)
+			.setConfig(RestAssuredConfig.config()
+					.httpClient(HttpClientConfig.httpClientConfig()
+						.setParam("http.connection.timeout", connectionTimeout)
+						.setParam("http.socket.timeout", socketTimeout)
+						.setParam("http.connection-manager.timeout", requestTimeout)));
+		
+		return builder.build();
+	}
+	
+	
 	
 	
 

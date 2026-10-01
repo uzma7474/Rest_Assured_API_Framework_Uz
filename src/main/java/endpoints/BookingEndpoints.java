@@ -8,6 +8,8 @@ public class BookingEndpoints {
 	
 	public static final String GET_BOOKING = "/booking/";
 	
+	public static final String BOOKING_BY_ID = "/booking/{id}";
+	
 	
 
 }

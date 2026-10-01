@@ -64,6 +64,16 @@
 			<scope>compile</scope>
 		</dependency>
 
+
+		<!-- Source:
+		https://mvnrepository.com/artifact/tools.jackson.datatype/jackson-datatype-jsr310 -->
+		<dependency>
+			<groupId>tools.jackson.datatype</groupId>
+			<artifactId>jackson-datatype-jsr310</artifactId>
+			<version>3.0.0-rc2</version>
+			<scope>compile</scope>
+		</dependency>
+
 		<!-- Source: https://mvnrepository.com/artifact/org.testng/testng -->
 		<dependency>
 			<groupId>org.testng</groupId>
@@ -118,11 +128,6 @@
 			<scope>compile</scope>
 		</dependency>
 
-		<dependency>
-			<groupId>rest.assured</groupId>
-			<artifactId>Rest_Assured_Framework_SDET</artifactId>
-			<version>0.0.1-SNAPSHOT</version>
-		</dependency>
 
 		<!-- Source:
 		https://mvnrepository.com/artifact/com.aventstack/extentreports -->
@@ -132,6 +137,27 @@
 			<version>5.1.2</version>
 			<scope>compile</scope>
 		</dependency>
+
+
+		<!-- Source:
+		https://mvnrepository.com/artifact/tech.grasshopper/extentreports-cucumber7-adapter -->
+		<dependency>
+			<groupId>tech.grasshopper</groupId>
+			<artifactId>extentreports-cucumber7-adapter</artifactId>
+			<version>1.14.0</version>
+			<scope>compile</scope>
+		</dependency>
+
+
+		<!-- Source:
+		https://mvnrepository.com/artifact/tech.grasshopper/cucumber-rest-assured-extent-report-plugin -->
+		<!-- <dependency>
+			<groupId>tech.grasshopper</groupId>
+			<artifactId>cucumber-rest-assured-extent-report-plugin</artifactId>
+			<version>2.4.0</version>
+			<scope>compile</scope>
+		</dependency>
+		-->
 
 
 	</dependencies>

@@ -32,6 +32,8 @@ public final class ConfigManager {
 	private static final String DEFAULT_ENVIRONMENT = "qa";
 
 	private static final String COMMON_CONFIG_FILE = "config/config.properties";
+	
+	private static final String BoorkingRequestBody_CONFIG_FILE = "config/BookingRequestBody.properties";
 
 	private ConfigManager() {
 		// Prevent object creation
@@ -69,6 +71,7 @@ public final class ConfigManager {
 		 * Load common configuration.
 		 */
 		loadFile(COMMON_CONFIG_FILE);
+		loadFile(BoorkingRequestBody_CONFIG_FILE);
 
 		/*
 		 * Load environment-specific configuration.

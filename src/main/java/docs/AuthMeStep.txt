@@ -1,0 +1,317 @@
+```java
+package stepdefinitions;
+
+import java.util.Map;
+
+import org.testng.Assert;
+
+import constants.HttpConstants;
+import io.cucumber.datatable.DataTable;
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
+import io.restassured.response.Response;
+import models.requests.RegisterRequest;
+import models.response.RegisterErrorResponse;
+import models.response.RegisterResponse;
+import services.RegisterService;
+import utils.TokenManager;
+
+public class RegisterSteps {
+
+    private String email;
+    private String password;
+
+    private RegisterRequest registerRequest;
+
+    private final RegisterService registerService = new RegisterService();
+
+    private RegisterResponse registerResponse;
+    private RegisterErrorResponse registerErrorResponse;
+
+    private Response response;
+
+    // =========================================================
+    // PRINT RESPONSE
+    // =========================================================
+
+    private void printResponse() {
+
+        System.out.println();
+        System.out.println("========================================");
+        System.out.println("REGISTER API RESPONSE");
+        System.out.println("========================================");
+
+        if (response != null) {
+
+            System.out.println("Status Code : " + response.statusCode());
+
+            System.out.println(
+                "Response Body :"
+            );
+
+            System.out.println(
+                response.asPrettyString()
+            );
+        }
+
+        if (registerResponse != null) {
+
+            System.out.println(
+                "Success : " + registerResponse.isSuccess()
+            );
+
+            System.out.println(
+                "Token : " + registerResponse.getToken()
+            );
+
+            if (registerResponse.getUser() != null) {
+
+                System.out.println(
+                    "User ID : " +
+                    registerResponse.getUser().getId()
+                );
+
+                System.out.println(
+                    "User Email : " +
+                    registerResponse.getUser().getEmail()
+                );
+            }
+        }
+
+        if (registerErrorResponse != null) {
+
+            System.out.println(
+                "Error : " +
+                registerErrorResponse.getError()
+            );
+        }
+
+        System.out.println("========================================");
+        System.out.println();
+    }
+
+    // =========================================================
+    // GIVEN - VALID REGISTRATION DETAILS
+    // =========================================================
+
+    @Given("I have valid registration details")
+    public void i_have_valid_registration_details(DataTable dataTable) {
+
+        Map<String, String> data =
+                dataTable.asMaps(String.class, String.class).get(0);
+
+        email = data.get("email");
+        password = data.get("password");
+
+        registerRequest =
+                new RegisterRequest(email, password);
+
+        System.out.println();
+        System.out.println("========================================");
+        System.out.println("Registration Request");
+        System.out.println("Email : " + email);
+        System.out.println("Password : " + password);
+        System.out.println("========================================");
+    }
+
+    // =========================================================
+    // GIVEN - INVALID REGISTRATION DETAILS
+    // =========================================================
+
+    @Given("I have invalid registration details")
+    public void i_have_invalid_registration_details(
+            DataTable dataTable) {
+
+        Map<String, String> data =
+                dataTable.asMaps(String.class, String.class).get(0);
+
+        email = data.get("email");
+        password = data.get("password");
+
+        registerRequest =
+                new RegisterRequest(email, password);
+
+        System.out.println();
+        System.out.println("========================================");
+        System.out.println("Invalid Registration Request");
+        System.out.println("Email : " + email);
+        System.out.println("Password : " + password);
+        System.out.println("========================================");
+    }
+
+    // =========================================================
+    // WHEN
+    // =========================================================
+
+    @When("I send a {string} request to register the user")
+    public void i_send_a_request_to_register_the_user(
+            String methodName) {
+
+        switch (methodName.toUpperCase()) {
+
+            case "POST":
+
+                // ---------------------------------------------
+                // FIRST SEND THE REQUEST
+                // ---------------------------------------------
+
+                response =
+                        registerService.registerUser(
+                                registerRequest
+                        );
+
+                // ---------------------------------------------
+                // THEN CHECK THE RESPONSE STATUS
+                // ---------------------------------------------
+
+                if (response.statusCode() == HttpConstants.CREATED) {
+
+                    registerResponse =
+                            registerService.registerUserUsingPojo(
+                                    response
+                            );
+
+                    System.out.println(
+                        "Token : " +
+                        registerResponse.getToken()
+                    );
+
+                    // -----------------------------------------
+                    // SAVE TOKEN ONLY AFTER SUCCESSFUL RESPONSE
+                    // -----------------------------------------
+
+                    String token =
+                            response.jsonPath()
+                                    .getString("token");
+
+                    if (token != null && !token.isBlank()) {
+
+                        TokenManager.setToken(token);
+
+                        System.out.println(
+                            "Token saved in TokenManager"
+                        );
+                    }
+
+                } else {
+
+                    registerErrorResponse =
+                            registerService.registerUserUsingPojo_failure(
+                                    response
+                            );
+
+                    System.out.println(
+                        "Error : " +
+                        registerErrorResponse.getError()
+                    );
+                }
+
+                break;
+
+            default:
+
+                throw new IllegalArgumentException(
+                    "Unsupported HTTP method: " +
+                    methodName
+                );
+        }
+
+        System.out.println(
+            "HTTP Method : " + methodName
+        );
+
+        System.out.println(
+            "Status Code : " + response.statusCode()
+        );
+
+        System.out.println("Response Body:");
+        System.out.println(response.asPrettyString());
+
+        printResponse();
+    }
+
+    // =========================================================
+    // THEN - STATUS CODE
+    // =========================================================
+
+    @Then("the registration response status code should be {int}")
+    public void the_registration_response_status_code_should_be(
+            Integer expectedStatusCode) {
+
+        Assert.assertNotNull(
+            response,
+            "API response should not be null"
+        );
+
+        Assert.assertEquals(
+            response.statusCode(),
+            expectedStatusCode.intValue(),
+            "Unexpected response status code"
+        );
+    }
+
+    // =========================================================
+    // THEN - SUCCESS
+    // =========================================================
+
+    @Then("the registration response success should be {word}")
+    public void the_registration_response_success_should_be(
+            String expectedSuccess) {
+
+        Assert.assertNotNull(
+            response,
+            "API response should not be null"
+        );
+
+        boolean expected =
+                Boolean.parseBoolean(expectedSuccess);
+
+        boolean actual =
+                response.jsonPath()
+                        .getBoolean("success");
+
+        Assert.assertEquals(
+            actual,
+            expected,
+            "Unexpected success value"
+        );
+
+        // ---------------------------------------------
+        // SUCCESS RESPONSE VALIDATIONS
+        // ---------------------------------------------
+
+        if (expected) {
+
+            String token =
+                    response.jsonPath()
+                            .getString("token");
+
+            String userEmail =
+                    response.jsonPath()
+                            .getString("user.email");
+
+            Assert.assertNotNull(
+                token,
+                "JWT token should not be null"
+            );
+
+            Assert.assertFalse(
+                token.isBlank(),
+                "JWT token should not be empty"
+            );
+
+            Assert.assertNotNull(
+                userEmail,
+                "User email should not be null"
+            );
+
+            Assert.assertEquals(
+                userEmail,
+                email,
+                "Registered email does not match request email"
+            );
+        }
+    }
+}
+```
